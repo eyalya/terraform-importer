@@ -35,7 +35,7 @@ class TerraformHandler:
             ValueError: If the specified Terraform folder does not exist.
         """
         self.__base_commands = ["terraform"]
-        self.__options = options
+        self.__options = options or []
         self.__terraform_folder = terraform_folder
 
         # Ensure the folder exists

@@ -14,7 +14,7 @@ class ECSService(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        self.client = self.get_client("ec2")
+        self.client = self.get_client("ecs")
         self._resources = [
             "aws_ecs_service",
         ]
@@ -29,6 +29,6 @@ class ECSService(BaseAWSService):
         return self._resources.copy()
     
         
-    def aws_ecs_service(resource):
+    def aws_ecs_service(self, resource):
         name = resource['change']['after']['name']
         return f"development/{name}"

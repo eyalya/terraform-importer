@@ -3,8 +3,13 @@ from typing import List, Optional, Dict
 from terraform_importer.providers.aws_services.base import BaseAWSService
 import os
 import importlib.util
+import logging
 import inspect
 import boto3
+
+# Define a global logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+global_logger = logging.getLogger("GlobalLogger")
 
 # AWS Provider
 class AWSProvider(BaseProvider):
@@ -13,8 +18,8 @@ class AWSProvider(BaseProvider):
     def __init__(self):
         super().__init__()
         # TODO: Change to auth config
-        self.name = "aws"
-        self.session = boto3.session.Session(profile_name='cordio-payer')
+        self.__name__ = "aws"
+        self.session = boto3.session.Session(profile_name='dev1')
         
         self._resources_dict = {}
 
@@ -65,7 +70,12 @@ class AWSProvider(BaseProvider):
         return subclasses
     
     def get_id(self, resource_type: str, resource_block: dict) -> Optional[str]:
-        return self._resources_dict[resource_type].get_id(resource_type, resource_block)
+        try: 
+            id = self._resources_dict[resource_type].get_id(resource_type, resource_block)
+        except KeyError:
+            global_logger.warning(f"resource type {resource_type} doesnt exist")
+            return None
+        return id
 
 
 povider = AWSProvider()

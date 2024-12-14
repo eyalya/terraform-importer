@@ -14,7 +14,7 @@ class EC2Service(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        self.client = self.get_client("ecs")
+        self.client = self.get_client("ec2")
         self._resources = [
             "aws_security_group",
             "aws_security_group_rule"
@@ -32,8 +32,8 @@ class EC2Service(BaseAWSService):
         
     # Function to generate an import block for Elastic IP (EIP)
     def aws_security_group(self, resource):
-        name = resource['change']['after']['tags']['Name']
-        response = self.client.describe_security_groups(Filters=[{'Name': 'tag:Name', 'Values': [name]}])
+        name = resource['change']['after']['name']
+        response = self.client.describe_security_groups(Filters=[{'Name': 'group-name', 'Values': [name]}])
 
         if len(response['SecurityGroups']) > 0:
             return response['SecurityGroups'][0]['GroupId']

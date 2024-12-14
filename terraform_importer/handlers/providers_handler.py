@@ -1,5 +1,10 @@
 from typing import List, Optional, Dict
 from terraform_importer.providers.base_provider import BaseProvider
+import logging
+
+# Define a global logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+global_logger = logging.getLogger("GlobalLogger")
 
 class ProvidersHandler:
     """Handles interaction with all providers."""
@@ -10,7 +15,7 @@ class ProvidersHandler:
         Args:
             providers (List[BaseProvider]): List of provider objects.
         """
-        self.providers = {type(provider).__name__: provider for provider in providers}
+        self.providers = {provider.__name__: provider for provider in providers}
         self.validate_providers()
     
     def validate_providers(self) -> None:
@@ -32,8 +37,10 @@ class ProvidersHandler:
         result_list = []
         for resource in resource_list:
             resource_type = resource['type']
-            result_list.append(self.get_resource(resource_type, resource))
-        return resource_list
+            resource = self.get_resource(resource_type, resource)
+            if resource:
+                result_list.append(resource)
+        return result_list
 
     
     def get_resource(self, resource_type: str, resource_block: dict) -> Optional[Dict[str, str]]:
@@ -47,7 +54,11 @@ class ProvidersHandler:
         """
         provider_name = resource_type.split("_")[0]
         address       = resource_block['address']
-        id = self.providers[provider_name].get_id(resource_type, resource_block)
+        try:
+            id = self.providers[provider_name].get_id(resource_type, resource_block)
+        except KeyError:
+            global_logger.warning(f"Provider type {provider_name} doesnt exist")
+            return None
         if id:
             return {"address": address, "id": id}
         return None

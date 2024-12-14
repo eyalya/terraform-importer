@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 class Importer:
     """Handles Terraform import operations."""
     

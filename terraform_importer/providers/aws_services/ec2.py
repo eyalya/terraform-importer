@@ -17,7 +17,9 @@ class EC2Service(BaseAWSService):
         self.client = self.get_client("ec2")
         self._resources = [
             "aws_security_group",
-            "aws_security_group_rule"
+            "aws_security_group_rule",
+            "aws_autoscaling_group",
+            "aws_key_pair"
         ]
 
     def get_resource_list(self) -> List[str]:
@@ -50,3 +52,9 @@ class EC2Service(BaseAWSService):
             return f"{main_string}_{values['source_security_group_id']}"
         
         return None
+
+    def aws_autoscaling_group(self, resource):
+        return resource['change']['after']['name']
+
+    def aws_key_pair(self, resource):
+        return resource['change']['after']['key_name']

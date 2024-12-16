@@ -77,5 +77,3 @@ class AWSProvider(BaseProvider):
             return None
         return id
 
-
-povider = AWSProvider()

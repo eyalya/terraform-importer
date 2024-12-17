@@ -16,7 +16,8 @@ class LoadBalancerService(BaseAWSService):
         super().__init__(session)
         self.client = self.get_client("'elbv2'")
         self._resources = [
-            "aws_lb_target_group"
+            "aws_lb_target_group",
+            "aws_lb_listener"
         ]
 
     def get_resource_list(self) -> List[str]:
@@ -41,4 +42,30 @@ def aws_lb_target_group(self, resource):
         global_logger.error(f"Error retrieving target group: {e}")
     return None  # Return None if no target group is found with the given name
 
-#TODO: aws_lb_listener & aws_lb_listener_rule
+def aws_lb_listener(self, resource):
+
+    target_group_arn = resource['change']['after']['default_action']['target_group_arn']
+    port = resource['change']['after']['port']
+    protocol = resource['change']['after']['protocol']
+
+    load_balancers = self.client.describe_load_balancers()
+    
+    # Step 2: Iterate through each load balancer
+    for lb in load_balancers['LoadBalancers']:
+        lb_arn = lb['LoadBalancerArn']
+
+        # Step 3: Get listeners for each load balancer
+        listeners = self.client.describe_listeners(LoadBalancerArn=lb_arn)
+
+        # Step 4: Check each listener for port, protocol, and target group ARN
+        for listener in listeners['Listeners']:
+            if listener['Port'] == port and listener['Protocol'] == protocol:
+                for action in listener['DefaultActions']:
+                    if action.get('TargetGroupArn') == target_group_arn:
+                        return listener['ListenerArn']
+        else:
+            global_logger.error("No matching listener found")
+
+    return None  # Return None if no matching listener found
+
+#def aws_lb_listener_rule(self,resource):

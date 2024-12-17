@@ -23,7 +23,8 @@ class S3Service(BaseAWSService):
             "aws_s3_bucket_public_access_block",
             "aws_s3_bucket_server_side_encryption_configuration",
             "aws_s3_bucket_lifecycle_configuration",
-            "aws_s3_bucket_versioning"
+            "aws_s3_bucket_versioning",
+            "aws_s3_bucket_acl"
 
         ]
 
@@ -60,5 +61,17 @@ class S3Service(BaseAWSService):
     def aws_s3_bucket_versioning(self, resource):
         return resource['change']['after']['bucket']
 
-    #def aws_s3_bucket_acl(self,resource):       #TODO: check docomantation 
-    #    return resource['change']['after']['bucket']
+    def aws_s3_bucket_acl(self,resource):       
+        acl  = resource['change']['after']['acl']
+        name = resource['change']['after']['bucket']
+        expected_bucket_owner = resource['change']['after']['expected_bucket_owner']
+
+        if acl and expected_bucket_owner: 
+            return f"{name},{expected_bucket_owner},{acl}"
+        elif acl and expected_bucket_owner is None:
+            return f"{name},{acl}"
+        elif not acl and expected_bucket_owner is None:
+            return name
+        elif not acl and expected_bucket_owner:
+            return f"{name},{expected_bucket_owner}"
+        return None

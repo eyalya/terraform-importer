@@ -218,7 +218,10 @@ class BitbucketDfraustProvider(BaseProvider):
         """
         deployment_name = resource_block['change']['after']['name']
         repository = resource_block['change']['after']['repository']
-        return self.get_deployment_uuid(repository, deployment_name)
+        id = self.get_deployment_uuid(repository, deployment_name)
+        if id:
+            return f"{repository}:{id}"
+        return None
         
     def bitbucket_deployment_variable(self, resource_block: Dict[str, Any]) -> str:
         """
@@ -236,9 +239,11 @@ class BitbucketDfraustProvider(BaseProvider):
             parts = deployment.split(":")
             repository_name = parts[0]
             deployment_id = parts[1]
+            id = self.get_variable_uuid(repository_name, variable_name, deployment_id)
+            return f"{deployment}/{id}"
         except KeyError:
             global_logger.debug(f"Deployment not creates")
-        return self.get_variable_uuid(repository_name, variable_name, deployment_id)
+        return None    
 
     def bitbucket_repository_variable(self, resource_block: Dict[str, Any]) -> str:
         """
@@ -252,4 +257,7 @@ class BitbucketDfraustProvider(BaseProvider):
         """
         variable_name = resource_block['change']['after']['key']
         repository_name = resource_block['change']['after']['repository']
-        return self.get_variable_uuid(repository_name, variable_name)
+        id = self.get_variable_uuid(repository_name, variable_name)
+        if id:
+            return f"{repository_name}/{variable_name}/{id}"
+        return None

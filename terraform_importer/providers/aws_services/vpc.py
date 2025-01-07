@@ -41,7 +41,7 @@ class VPCService(BaseAWSService):
     def aws_route_table(self, resource_name, vpc_id):
         response = self.client.describe_route_tables(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}, {'Name': 'tag:Name', 'Values': [resource_name]}])
         for route_table in response['RouteTables']:
-            return  id ="{route_table['RouteTableId']}"
+            return route_table['RouteTableId']
         return None
 
     def aws_route_table_association(self, resource):

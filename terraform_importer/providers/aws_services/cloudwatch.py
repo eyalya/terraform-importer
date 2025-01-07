@@ -15,6 +15,11 @@ class CloudWatchService(BaseAWSService):
     def __init__(self, session: boto3.Session):
         super().__init__(session)
         self.logs_client = self.get_client("logs")
+        # Get account ID using STS client
+        sts_client = self.get_client('sts')
+        self.account_id = sts_client.get_caller_identity()['Account']
+        # Get region from session
+        self.region = session.region_name
         self._resources = [
             "aws_cloudwatch_query_definition",
             "aws_cloudwatch_event_target",
@@ -23,7 +28,6 @@ class CloudWatchService(BaseAWSService):
             "aws_cloudwatch_event_rule",
             "aws_cloudwatch_log_metric_filter",
             "aws_cloudwatch_query_definition"
-
         ]
 
     def get_resource_list(self) -> List[str]:
@@ -35,37 +39,6 @@ class CloudWatchService(BaseAWSService):
         # Return a copy to prevent external modification
         return self._resources.copy()
 
-    def aws_cloudwatch_query_definition(self, resource):
-        name = f"{resource['change']['after']['name']}"
-        """
-        Retrieves the ID of an AWS CloudWatch Logs Query Definition by its name.
-        
-        :param query_definition_name: The name of the CloudWatch Logs Query Definition.
-        :return: The ID of the Query Definition, or None if not found.
-        """
-        try:
-            # Use the DescribeInstances method with a filter for the Name tag
-            response = self.logs_client.describe_instances(
-                Filters=[
-                    {
-                        'Name': 'tag:Name',
-                        'Values': [name]
-                    }
-                ]
-            )
-        
-            # Collect instances from the response
-            instances = []
-            for reservation in response['Reservations']:
-                for instance in reservation['Instances']:
-                    instances.append(instance)
-            
-            return instance['InstanceId']
-        except Exception as e:
-        global_logger.error(f"An error occurred: {e}")
-
-        return []
-
     def aws_cloudwatch_event_target(self, resource):
         return f"{resource['change']['after']['rule']}/{resource['change']['after']['target_id']}"
 
@@ -73,7 +46,7 @@ class CloudWatchService(BaseAWSService):
         try:
             return resource['change']['after']['name']
         except Exception as e:
-            global_logger.error(f"An error occurred: {e}")
+            global_logger.error(f"cloudwatch_event_target: An error occurred: {e}")
             return None
 
     def aws_cloudwatch_metric_alarm(self, resource):
@@ -82,10 +55,10 @@ class CloudWatchService(BaseAWSService):
     def aws_cloudwatch_event_rule(self, resource):
         return f"{resource['change']['after']['name']}"
 
-    def aws_cloudwatch_log_metric_filter(self resource):
+    def aws_cloudwatch_log_metric_filter(self, resource):
         name = f"{resource['change']['after']['name']}"
         log_group_name = f"{resource['change']['after']['log_group_name']}"
-        return  f"{log_group_name}:{name}"
+        return  f"{log_group_name}:{name}"    
     
     def aws_cloudwatch_query_definition(self, resource):
         name = f"{resource['change']['after']['name']}"
@@ -97,10 +70,10 @@ class CloudWatchService(BaseAWSService):
         """
         try:
             # List all query definitions
-            response = logs_client.describe_query_definitions(queryDefinitionNamePrefix=name)
+            response =  self.logs_client.describe_query_definitions(queryDefinitionNamePrefix=name)
             for item in response["queryDefinitions"]:
                 if item['name'] == name:
-                    return item['queryDefinitionId']
+                    return f"arn:aws:logs:{self.region}:{self.account_id}:query-definition:{item['queryDefinitionId']}"
         except Exception as e:
             global_logger.error(f"An error occurred: {e}")
         return None

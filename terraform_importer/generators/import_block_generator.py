@@ -42,7 +42,7 @@ class ImportBlockGenerator:
         Returns:
             Dict[str, list]: A dictionary containing resource details.
         """
-        targets = targets or []
+        targets     = targets or []
         self.logger.info(f"Starting resource extraction for targets: {targets}")
         
         try:
@@ -50,6 +50,7 @@ class ImportBlockGenerator:
             self.logger.info("Running Terraform plan...")
             self._tf_handler.run_terraform_plan(targets)
             
+            targets=[t.replace("-target=module.", "") for t in targets]
             self.logger.info("Running Terraform show...")
             resource_list = self._tf_handler.run_terraform_show(targets)
             
@@ -58,7 +59,7 @@ class ImportBlockGenerator:
             import_blocks = self.generate_imports_from_plan(resource_list)
             
             # Determine output file path
-            output_file = os.path.join(self._tf_handler.get_terraform_folder(), "import.tf")
+            output_file = os.path.join(self._tf_handler.get_terraform_folder(), f"import-{targets}.tf")
             self.logger.info(f"Saving import blocks to {output_file}")
             
             # Create the import file

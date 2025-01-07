@@ -86,13 +86,13 @@ class GENERALService(BaseAWSService):
 
     def aws_acm_certificate(self,resource):  #TODO: need check
         domain_name = resource['change']['after']['domain_name']
-        certificates = acm_client.list_certificates(CertificateStatuses=['ISSUED'])
+        certificates = self.acm_client.list_certificates(CertificateStatuses=['ISSUED'])
 
         for cert in certificates['CertificateSummaryList']:
-        if domain_name:
-            if cert['DomainName'] == domain_name:
-                return cert['CertificateArn']
-        return None
+            if domain_name:
+                if cert['DomainName'] == domain_name:
+                    return cert['CertificateArn']
+            return None
 
     def aws_elastic_beanstalk_application(self, resource):
         return resource['change']['after']['name']
@@ -131,7 +131,7 @@ class GENERALService(BaseAWSService):
 
         response = self.codebuild_client.list_source_credentials()
         for credential in response.get('sourceCredentialsInfos', []):
-            if credential['authType'] == auth_type and credential['serverType'] == 'server_type:
+            if credential['authType'] == auth_type and credential['serverType'] == server_type:
                 return credential['arn']
         return None
 

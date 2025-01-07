@@ -15,6 +15,7 @@ class ECSService(BaseAWSService):
     def __init__(self, session: boto3.Session):
         super().__init__(session)
         self.client = self.get_client("ecs")
+        self.sd_client = self.get_client("servicediscovery")
         self._resources = [
             "aws_ecs_service",
             "aws_ecs_task_definition",
@@ -50,9 +51,22 @@ class ECSService(BaseAWSService):
     def aws_ecs_cluster_capacity_providers(self, resource):
         return f"{resource['change']['after']['cluster_name']}"
 
-    def aws_service_discovery_service(self, resource_name, vpc_id):
-        response = service_discovery_client.list_namespaces(Filters={'Name': 'VPC', 'Values': [vpc_id]})
-        for namespace in response['Namespaces']:
-            if namespace['Name'] == resource_name:
-                return {namespace['Id']}
+    def aws_service_discovery_service(self, resource):
+        # Use pagination in case you have many services
+        try:
+            paginator = self.sd_client.get_paginator('list_services')
+            namespace_id = resource['change']['after']['dns_config'][0]['namespace_id']
+            service_name = resource['change']['after']['name']
+            for page in paginator.paginate(Filters=[
+                {
+                    'Name': 'NAMESPACE_ID',
+                    'Values': [namespace_id],
+                    'Condition': 'EQ'
+                }
+            ]):
+                for service in page.get('Services', []):
+                    if service.get('Name') == service_name:
+                        return service.get('Id')
+        except KeyError as e:
+            global_logger.error("Keys not exist")
         return None

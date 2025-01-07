@@ -54,11 +54,14 @@ class ProvidersHandler:
         """
         provider_name = resource_type.split("_")[0]
         address       = resource_block['address']
-        try:
-            id = self.providers[provider_name].get_id(resource_type, resource_block)
-        except KeyError:
-            global_logger.warning(f"Provider type {provider_name} doesnt exist")
-            return None
-        if id:
-            return {"address": address, "id": id}
+        if resource_block['change']['actions'] == ['create']:
+            try:
+                id = self.providers[provider_name].get_id(resource_type, resource_block)
+            except KeyError:
+                global_logger.warning(f"Provider type {provider_name} doesnt exist")
+                return None
+            if id:
+                return {"address": address, "id": id}
+        else:
+            global_logger.warning(f"Resource {resource_type} is not a create action")
         return None

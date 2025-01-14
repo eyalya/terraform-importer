@@ -70,6 +70,27 @@ class ImportBlockGenerator:
             self.logger.error(f"Failed to extract resource list: {e}")
             raise
 
+    def _get_provider_for_resource(self, resource: Dict, resource_list: Dict) -> Optional[str]:
+        """
+        Extracts the provider configuration key for a given resource.
+
+        Args:
+            resource (Dict): The resource to find the provider for
+            resource_list (Dict): The complete resource list from Terraform show
+
+        Returns:
+            Optional[str]: The provider config key if found, None otherwise
+        """
+        provider_dict = resource_list["configuration"]["root_module"]["resources"]
+        address = resource['address']
+        items = [item for item in provider_dict if item['address'] == address]
+        
+        if items:
+            return items[0]["provider_config_key"]
+        
+        self.logger.debug(f"No provider found for resource {address}")
+        return None
+
     def generate_imports_from_plan(self, resource_list: Dict) -> List[Dict[str, str]]:
         """
         Filters resources requiring import based on their planned actions and retrieves their IDs.
@@ -85,6 +106,11 @@ class ImportBlockGenerator:
 
         # Extract resource changes
         for resource in resource_list.get('resource_changes', []):
+            provider = self._get_provider_for_resource(resource, resource_list)
+            if not provider:
+                continue
+            resource["provider"] = provider
+            
             actions = resource['change']['actions']
             if "create" not in actions:
                 self.logger.debug(f"Skipping resource {resource['address']} with actions: {actions}")

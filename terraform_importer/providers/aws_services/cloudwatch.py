@@ -14,7 +14,7 @@ class CloudWatchService(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        self.logs_client = self.get_client("logs")
+        self.logs_client = self.get_client("logs", provider)
         # Get account ID using STS client
         sts_client = self.get_client('sts')
         self.account_id = sts_client.get_caller_identity()['Account']
@@ -60,7 +60,7 @@ class CloudWatchService(BaseAWSService):
         log_group_name = f"{resource['change']['after']['log_group_name']}"
         return  f"{log_group_name}:{name}"    
     
-    def aws_cloudwatch_query_definition(self, resource):
+    def aws_cloudwatch_query_definition(self, resource, sessions):
         name = f"{resource['change']['after']['name']}"
         """
         Retrieves the ID of an AWS CloudWatch Logs Query Definition by its name.

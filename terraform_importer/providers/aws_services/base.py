@@ -14,19 +14,20 @@ class BaseAWSService(ABC):
     Abstract base class for AWS service handlers (e.g., EC2, VPC).
     """
 
-    def __init__(self, session: boto3.Session ):
+    def __init__(self, sessions: boto3.Session ):
         # Shared data for all AWS services
-        self.session = session
+        self.sessions = sessions
     
-    def get_client(self, service_name: str):
+    def get_client(self, service_name: str, provider: str):
         """
         Creates a boto3 client for the specified AWS service.
         Args:
             service_name (str): The name of the AWS service (e.g., 'ec2', 'vpc').
+            provider (str): The name of the provider (e.g., 'aws').
         Returns:
             boto3.client: A boto3 client for the specified service.
         """
-        return self.session.client(service_name)
+        return self.sessions[provider].client(service_name)
 
     @abstractmethod
     def get_resource_list(self) -> List[str]:
@@ -34,7 +35,7 @@ class BaseAWSService(ABC):
         """
         pass
     
-    def get_id(self, resource_type: str, resource_block: Dict) -> Optional[str]:
+    def get_id(self, resource_type: str, resource_block: Dict, sessions: Dict) -> Optional[str]:
         """
         Fetches the ID for a specific resource type and resource block.
         Args:
@@ -45,7 +46,7 @@ class BaseAWSService(ABC):
         """
         if hasattr(self, resource_type):
             method = getattr(self, resource_type)
-            return method(resource_block)
+            return method(resource_block, sessions)
         else:
             global_logger.info(f"No such resource_type: {resource_type}")
             return None

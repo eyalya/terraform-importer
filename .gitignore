@@ -176,3 +176,4 @@ venv/
 
 #IDE
 .vscode
+plan.json

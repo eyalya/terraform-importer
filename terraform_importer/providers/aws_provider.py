@@ -1,6 +1,7 @@
 from terraform_importer.providers.base_provider import BaseProvider
 from typing import List, Optional, Dict
 from terraform_importer.providers.aws_services.base import BaseAWSService
+from terraform_importer.providers.aws_auth import AWSAuthHandler
 import os
 import importlib.util
 import logging
@@ -15,21 +16,23 @@ global_logger = logging.getLogger("GlobalLogger")
 class AWSProvider(BaseProvider):
     """AWS-specific implementation of the BaseProvider."""
 
-    def __init__(self):
+    def __init__(self, auth_config: Dict):
         super().__init__()
-        # TODO: Change to auth config
+
+        self.auth_handler = AWSAuthHandler(auth_config)
         self.__name__ = "aws"
-        self.session = boto3.session.Session(profile_name='dev1')
-        
+        # self.session = boto3.session.Session(profile_name='dev1')
+        self._session = self.auth_handler.get_session() # TODO: add function to get session
         self._resources_dict = {}
 
         # Discover and instantiate all subclasses of BaseAWSService
         service_classes = self.get_aws_service_subclasses(BaseAWSService, "terraform_importer/providers/aws_services")
         for service_class in service_classes:
             # Instantiate the service
-            service_instance = service_class(self.session)
+            service_instance = service_class(self._sessions)
             self.add_to_resource_dict(service_instance)
         
+    
     def add_to_resource_dict(self, service: BaseAWSService):
         """
         Updates the resource dictionary with resources from a service.

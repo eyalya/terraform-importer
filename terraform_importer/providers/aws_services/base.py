@@ -23,10 +23,12 @@ class BaseAWSService(ABC):
         Creates a boto3 client for the specified AWS service.
         Args:
             service_name (str): The name of the AWS service (e.g., 'ec2', 'vpc').
+            provider (str): The name of the provider (e.g., 'aws').
         Returns:
             boto3.client: A boto3 client for the specified service.
         """
         return self.session.client(service_name)
+
 
     @abstractmethod
     def get_resource_list(self) -> List[str]:

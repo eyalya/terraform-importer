@@ -9,14 +9,25 @@ global_logger = logging.getLogger("GlobalLogger")
 class ProvidersHandler:
     """Handles interaction with all providers."""
     
-    def __init__(self, providers: List[BaseProvider]):
+    def __init__(self, provider_config: Dict):
         """
         Initializes the handler with a list of provider instances.
         Args:
             providers (List[BaseProvider]): List of provider objects.
         """
-        self.providers = {provider.__name__: provider for provider in providers}
+        # self.providers = {provider.__name__: provider for provider in providers}
+        self.providers = self.init_providers(provider_config)
         self.validate_providers()
+    
+    def init_providers(self, provider_config: Dict) -> Dict:
+        """
+        Initializes the providers based on the configuration.
+        Args:
+            provider_config (Dict): The configuration for the providers.
+        Returns:
+            Dict: A dictionary of initialized providers.
+        """
+        return {provider.__name__: provider for provider in providers}
     
     def validate_providers(self) -> None:
         """
@@ -54,6 +65,7 @@ class ProvidersHandler:
         """
         provider_name = resource_type.split("_")[0]
         address       = resource_block['address']
+        ## TODO: check if action is create is on import block generator, so no need to check here
         if resource_block['change']['actions'] == ['create']:
             try:
                 id = self.providers[provider_name].get_id(resource_type, resource_block)

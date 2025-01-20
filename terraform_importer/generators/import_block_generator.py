@@ -18,7 +18,7 @@ class ImportBlockGenerator:
         _provider_handler (ProvidersHandler): Handler for provider-specific resource actions.
     """
     
-    def __init__(self, tf_handler: TerraformHandler, provider_handler: ProvidersHandler):
+    def __init__(self, tf_handler: TerraformHandler):
         """
         Initializes the ImportBlockGenerator with Terraform and Provider handlers.
         
@@ -27,7 +27,7 @@ class ImportBlockGenerator:
             provider_handler (ProvidersHandler): An instance of ProvidersHandler for provider resource handling.
         """
         self._tf_handler = tf_handler
-        self._provider_handler = provider_handler
+        self._provider_handler = None
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
 
@@ -53,6 +53,8 @@ class ImportBlockGenerator:
             targets=[t.replace("-target=module.", "") for t in targets]
             self.logger.info("Running Terraform show...")
             resource_list = self._tf_handler.run_terraform_show(targets)
+
+            self._provider_handler = ProvidersHandler(resource_list)
             
             # Generate import blocks from the resource list
             self.logger.info("Generating import blocks...")
@@ -115,6 +117,11 @@ class ImportBlockGenerator:
             if "create" not in actions:
                 self.logger.debug(f"Skipping resource {resource['address']} with actions: {actions}")
                 continue
+            provider = self._get_provider_for_resource(resource, resource_list)
+            if not provider:
+                continue
+            resource["provider"] = provider
+            
             import_blocks.append(resource)
         
         self.logger.info(f"Filtered {len(import_blocks)} resources for import.")

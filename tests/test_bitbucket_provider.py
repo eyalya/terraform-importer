@@ -10,7 +10,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         """
         Set up mock providers for testing.
         """
-        self.bitbucket = BitbucketDfraustProvider("eyal_yaish", "abWkEKPvnT5apsZEVGtc")
+        self.bitbucket = BitbucketDfraustProvider()
         self.providers = [self.bitbucket]
         self.handler = ProvidersHandler(self.providers)
         # self.username = "test-user"

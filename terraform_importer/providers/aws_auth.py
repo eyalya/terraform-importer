@@ -6,9 +6,10 @@ class AWSAuthHandler:
     def __init__(self, auth_config: dict):
         self.auth_config = auth_config
         self.logger = logging.getLogger("AWSAuthHandler")
+        self.session = self.init_session()
         # TODO: dictionary of providers and their sessions
 
-    def get_session(self, provider: str) -> boto3.Session:
+    def init_session(self) -> boto3.Session:
         """
         Creates a boto3 session based on the authentication configuration.
         Handles different auth scenarios:
@@ -16,6 +17,7 @@ class AWSAuthHandler:
         - Role assumption
         - Default credentials
         """
+        ## TODO: Need to fix implementation of this
         try:
             if "profile" in self.auth_config:
                 return boto3.Session(profile_name=self.auth_config["profile"])
@@ -39,3 +41,6 @@ class AWSAuthHandler:
         except Exception as e:
             self.logger.error(f"Failed to create AWS session: {str(e)}")
             raise 
+
+    def get_session(self) -> boto3.Session:
+        return self.session

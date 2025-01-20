@@ -29,6 +29,7 @@ class BaseAWSService(ABC):
         """
         return self.sessions[provider].client(service_name)
 
+
     @abstractmethod
     def get_resource_list(self) -> List[str]:
         """

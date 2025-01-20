@@ -16,13 +16,13 @@ global_logger = logging.getLogger("GlobalLogger")
 class AWSProvider(BaseProvider):
     """AWS-specific implementation of the BaseProvider."""
 
-    def __init__(self):
+    def __init__(self, auth_config: Dict):
         super().__init__()
 
         self.auth_handler = AWSAuthHandler(auth_config)
         self.__name__ = "aws"
         # self.session = boto3.session.Session(profile_name='dev1')
-        self._sessions = {}
+        self._session = self.auth_handler.get_session() # TODO: add function to get session
         self._resources_dict = {}
 
         # Discover and instantiate all subclasses of BaseAWSService
@@ -32,11 +32,6 @@ class AWSProvider(BaseProvider):
             service_instance = service_class(self._sessions)
             self.add_to_resource_dict(service_instance)
         
-    def set_sessions(self, providers_config: dict):
-        for provider in providers_config:
-            if provider["full_name"] == "aws":
-                self._sessions[provider] = self.auth_handler.get_session()
-
     
     def add_to_resource_dict(self, service: BaseAWSService):
         """

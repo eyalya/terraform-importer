@@ -108,10 +108,6 @@ class ImportBlockGenerator:
 
         # Extract resource changes
         for resource in resource_list.get('resource_changes', []):
-            provider = self._get_provider_for_resource(resource, resource_list)
-            if not provider:
-                continue
-            resource["provider"] = provider
             
             actions = resource['change']['actions']
             if "create" not in actions:

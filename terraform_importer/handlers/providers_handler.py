@@ -27,7 +27,69 @@ class ProvidersHandler:
         Returns:
             Dict: A dictionary of initialized providers.
         """
-        return {provider.__name__: provider for provider in providers}
+        providers = {}
+        providers_config= provider_config["configuration"]["provider_config"]
+        variables = provider_config["variables"]
+        for provider, provider_data in providers_config.items():
+            provider_name = provider  # e.g., "aws.euCentral1"
+            provider_class = provider_data['name']
+            modified_providers_config = self.resolve_variables(providers_config, variables)
+            if provider_class == "aws":
+                   provider = AWSProvider(modified_providers_config)
+               elif provider_class == "bitbucket":
+                   provider = BitbucketDfraustProvider(modified_providers_config)
+               elif provider_class == "gcp":
+                   provider = GCPProvider(modified_providers_config)
+               else:
+                   logger.warning(f"Unhandled provider type: {provider_class}")
+                   provider = None
+               providers[provider_name] = provider
+            return providers
+
+    def resolve_variables (providers_config, variables)
+            #provider_full_name = provider_data["full_name"]  # e.g., "registry.terraform.io/hashicorp/aws"
+            ### to improve : create function that change all ref that start with var.
+            assume_role = [
+                resolve_variable_reference(role_arn_ref, variables)
+                for role_arn_ref in provider_data.get('expressions', {})
+                .get('assume_role', [{}])[0]
+                .get('role_arn', {})
+                .get('references', [])
+            ]
+            profile = [
+                resolve_variable_reference(profile_ref, variables)
+                for profile_ref in provider_data.get('expressions', {})
+                .get('profile', {})
+                .get('references', [])
+            ]
+            username = [
+                resolve_variable_reference(username_ref, variables)
+                for username_ref in provider_data.get('expressions', {})
+                .get('username', {})
+                .get('references', [])
+            ]
+            password = [
+                resolve_variable_reference(password_ref, variables)
+                for password_ref in provider_data.get('expressions', {})
+                .get('password', {})
+                .get('references', [])
+            ]
+            providers_config["expressions"]["assume_role"]["role_arn"]["references"] = assume_role
+            providers_config["expressions"]["profile"]["references"] = profile
+            providers_config["expressions"]["username"]["references"] = username
+            providers_config["expressions"]["password"]["references"] = password
+            # Match provider_name to specific classes
+           #return {provider.__name__: provider for provider in providers}
+
+    def resolve_variable_reference(self, ref, variables):
+        """Resolve a variable reference from the 'variables' block, only if it starts with 'var.'"""
+        if ref and ref.startswith("var."):
+            var_name = ref[len("var."):].strip()  # Remove the 'var.' prefix
+            var_data = variables.get(var_name, {}).get("value", None)
+            if var_data is None:
+                logger.warning(f"Variable {var_name} not found or has no value.")
+            return var_data
+        return ref  # If it's not a variable reference, return the value as-is
     
     def validate_providers(self) -> None:
         """
@@ -63,17 +125,14 @@ class ProvidersHandler:
         Returns:
             Optional[Dict[str, str]]: Resource details or None if not found.
         """
-        provider_name = resource_type.split("_")[0]
+        provider_name = resource_block["provider"]
         address       = resource_block['address']
-        ## TODO: check if action is create is on import block generator, so no need to check here
-        if resource_block['change']['actions'] == ['create']:
-            try:
-                id = self.providers[provider_name].get_id(resource_type, resource_block)
-            except KeyError:
-                global_logger.warning(f"Provider type {provider_name} doesnt exist")
-                return None
-            if id:
-                return {"address": address, "id": id}
-        else:
-            global_logger.warning(f"Resource {resource_type} is not a create action")
-        return None
+
+        try:
+            id = self.providers[provider_name].get_id(resource_type, resource_block)
+        except KeyError:
+            global_logger.warning(f"Provider type {provider_name} doesnt exist")
+            return None
+        if id:
+            return {"address": address, "id": id}
+        

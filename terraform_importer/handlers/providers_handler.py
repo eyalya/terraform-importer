@@ -1,5 +1,9 @@
 from typing import List, Optional, Dict
 from terraform_importer.providers.base_provider import BaseProvider
+from terraform_importer.providers.aws_provider import AWSProvider
+from terraform_importer.providers.bitbucket_provider import BitbucketDfraustProvider
+# from terraform_importer.providers.gcp_provider import GCPProvider
+from terraform_importer.handlers.json_config_handler import JsonConfigHandler
 import logging
 
 # Define a global logger
@@ -8,6 +12,12 @@ global_logger = logging.getLogger("GlobalLogger")
 
 class ProvidersHandler:
     """Handles interaction with all providers."""
+
+    providers_full_names = {
+        "registry.terraform.io/hashicorp/aws": AWSProvider,
+        "registry.terraform.io/hashicorp/bitbucket": BitbucketDfraustProvider,
+        # "registry.terraform.io/hashicorp/gcp": GCPProvider
+    }
     
     def __init__(self, provider_config: Dict):
         """
@@ -16,8 +26,11 @@ class ProvidersHandler:
             providers (List[BaseProvider]): List of provider objects.
         """
         # self.providers = {provider.__name__: provider for provider in providers}
-        self.providers = self.init_providers(provider_config)
-        self.validate_providers()
+        stript_config = JsonConfigHandler.replace_variables(provider_config["configuration"]["provider_config"], provider_config["variables"])
+        stript_config = JsonConfigHandler.simplify_references(stript_config)
+        stript_config = JsonConfigHandler.simplify_constant_values(stript_config)
+        # self.providers = self.init_providers(stript_config)
+        # self.validate_providers()
     
     def init_providers(self, provider_config: Dict) -> Dict:
         """
@@ -28,69 +41,16 @@ class ProvidersHandler:
             Dict: A dictionary of initialized providers.
         """
         providers = {}
-        providers_config= provider_config["configuration"]["provider_config"]
-        variables = provider_config["variables"]
-        for provider, provider_data in providers_config.items():
-            provider_name = provider  # e.g., "aws.euCentral1"
-            provider_class = provider_data['name']
-            modified_providers_config = self.resolve_variables(providers_config, variables)
-            if provider_class == "aws":
-                   provider = AWSProvider(modified_providers_config)
-               elif provider_class == "bitbucket":
-                   provider = BitbucketDfraustProvider(modified_providers_config)
-               elif provider_class == "gcp":
-                   provider = GCPProvider(modified_providers_config)
-               else:
-                   logger.warning(f"Unhandled provider type: {provider_class}")
-                   provider = None
-               providers[provider_name] = provider
-            return providers
+        for provider_name, provider_data in provider_config.items():
+            provider_full_name = provider_data.get("full_name")
+            if provider_full_name in self.providers_full_names:
+                provider_class = self.providers_full_names[provider_full_name]
+                providers[provider_name] = provider_class(provider_data)
+            else:
+                global_logger.warning(f"Unhandled provider type: {provider_full_name}")
+                providers[provider_name] = None
+        return providers
 
-    def resolve_variables (providers_config, variables)
-            #provider_full_name = provider_data["full_name"]  # e.g., "registry.terraform.io/hashicorp/aws"
-            ### to improve : create function that change all ref that start with var.
-            assume_role = [
-                resolve_variable_reference(role_arn_ref, variables)
-                for role_arn_ref in provider_data.get('expressions', {})
-                .get('assume_role', [{}])[0]
-                .get('role_arn', {})
-                .get('references', [])
-            ]
-            profile = [
-                resolve_variable_reference(profile_ref, variables)
-                for profile_ref in provider_data.get('expressions', {})
-                .get('profile', {})
-                .get('references', [])
-            ]
-            username = [
-                resolve_variable_reference(username_ref, variables)
-                for username_ref in provider_data.get('expressions', {})
-                .get('username', {})
-                .get('references', [])
-            ]
-            password = [
-                resolve_variable_reference(password_ref, variables)
-                for password_ref in provider_data.get('expressions', {})
-                .get('password', {})
-                .get('references', [])
-            ]
-            providers_config["expressions"]["assume_role"]["role_arn"]["references"] = assume_role
-            providers_config["expressions"]["profile"]["references"] = profile
-            providers_config["expressions"]["username"]["references"] = username
-            providers_config["expressions"]["password"]["references"] = password
-            # Match provider_name to specific classes
-           #return {provider.__name__: provider for provider in providers}
-
-    def resolve_variable_reference(self, ref, variables):
-        """Resolve a variable reference from the 'variables' block, only if it starts with 'var.'"""
-        if ref and ref.startswith("var."):
-            var_name = ref[len("var."):].strip()  # Remove the 'var.' prefix
-            var_data = variables.get(var_name, {}).get("value", None)
-            if var_data is None:
-                logger.warning(f"Variable {var_name} not found or has no value.")
-            return var_data
-        return ref  # If it's not a variable reference, return the value as-is
-    
     def validate_providers(self) -> None:
         """
         Validates that all providers implement required methods.
@@ -114,7 +74,6 @@ class ProvidersHandler:
             if resource:
                 result_list.append(resource)
         return result_list
-
     
     def get_resource(self, resource_type: str, resource_block: dict) -> Optional[Dict[str, str]]:
         """

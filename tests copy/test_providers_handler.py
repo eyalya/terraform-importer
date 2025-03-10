@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 from typing import List, Dict
 from terraform_importer.providers.base_provider import BaseProvider
 from terraform_importer.handlers.providers_handler import ProvidersHandler
-import json
-import pprint
+
+
 class TestProvidersHandler(unittest.TestCase):
     def setUp(self):
         """
@@ -15,16 +15,15 @@ class TestProvidersHandler(unittest.TestCase):
         self.mock_provider_aws.get_id.return_value = "aws-id-123"
 
         # Initialize ProvidersHandler with mock providers
-        self._resource_list = json.load(open("tests/assets/plan.json"))
-        # self.providers = [self.mock_provider_aws]
-        # self.handler = ProvidersHandler(self.providers)
+        self.providers = [self.mock_provider_aws]
+        self.handler = ProvidersHandler(self.providers)
 
     def test_init(self):
         """
         Test initialization of ProvidersHandler.
         """
-        provider_handler = ProvidersHandler(self._resource_list)
-        self.assertEqual(provider_handler.providers, self.mock_provider_aws)
+        # Ensure providers are correctly stored in a dictionary
+        self.assertIn(type(self.mock_provider_aws).__name__, self.handler.providers)
 
     def test_validate_providers(self):
         """
@@ -91,19 +90,6 @@ class TestProvidersHandler(unittest.TestCase):
 
         # Verify each resource was processed
         self.assertEqual(len(results), len(resource_list))
-
-    def test_resolve_variables(self):
-        """
-        Test resolve_variables to ensure variables are resolved correctly.
-        """
-        
-        # Mock variables
-        variables = self._resource_list["variables"]
-        providers_config = self._resource_list["configuration"]["provider_config"]
-        
-        # Test resolve_variables
-        resolved_variables = self.handler.resolve_variables(providers_config, variables)
-        # pprint.pprint(resolved_variables)
 
 
 if __name__ == "__main__":

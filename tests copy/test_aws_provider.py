@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch, call, MagicMock
 from terraform_importer.providers.aws_services.base import BaseAWSService
 from terraform_importer.providers.aws_provider import AWSProvider
-from terraform_importer.providers.aws_services.aws_auth import AWSAuthHandler
+import os
 import json
 
 
@@ -112,18 +112,6 @@ class TestAWSProvider(unittest.TestCase):
 
         # Verify get_id is called on the service instance
         mock_service_instance.get_id.assert_called_once_with("aws_security_group", resource_block)
-
-class TestAWSAuth(unittest.TestCase):
-    def test_init(self):
-        # Mock the boto3 session
-        json_data = json.load(open("tests/assets/simplified_provider_config_constant_values.json"))
-        auth_handler = AWSAuthHandler(json_data["aws"])
-        session = auth_handler.get_session()
-        sts_client = session.client("sts")
-        caller_identity = sts_client.get_caller_identity()
-        self.assertEqual(caller_identity["Account"], "173115710334")
-
-        # self.assertEqual(auth_handler.auth_config, {"profile": "cordio-dev1"})
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from terraform_importer.providers.base_provider import BaseProvider
 from typing import List, Optional, Dict
 from terraform_importer.providers.aws_services.base import BaseAWSService
-from terraform_importer.providers.aws_auth import AWSAuthHandler
+from terraform_importer.providers.aws_services.aws_auth import AWSAuthHandler
 import os
 import importlib.util
 import logging
@@ -20,10 +20,8 @@ class AWSProvider(BaseProvider):
         super().__init__()
 
         self.auth_handler = AWSAuthHandler(auth_config)
-        # self.__name__ = "aws"
-        # self.session = boto3.session.Session(profile_name='dev1')
-        self._provider = provider.provider_name
-        self._sessions = self.auth_handler.get_session() # TODO: add function to get session
+        self.__name__ = f"{auth_config["name"]}.{auth_config["alias"]}"
+        self._sessions = self.auth_handler.get_session()
         self._resources_dict = {}
         
         # Discover and instantiate all subclasses of BaseAWSService
@@ -73,10 +71,8 @@ class AWSProvider(BaseProvider):
         return subclasses
     
     def get_id(self, resource_type: str, resource_block: dict) -> Optional[str]:
-        provider = resource_block["provider"]
-        session = self.sessions[provider]
         try: 
-            id = self._resources_dict[resource_type].get_id(resource_type, resource_block, session)
+            id = self._resources_dict[resource_type].get_id(resource_type, resource_block)
         except KeyError:
             global_logger.warning(f"resource type {resource_type} doesnt exist")
             return None

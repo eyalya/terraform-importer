@@ -23,7 +23,7 @@ class BitbucketDfraustProvider(BaseProvider):
         session (requests.Session): A persistent session for making authenticated API calls.
     """
 
-    def __init__(self, username: str, password: str):
+    def __init__(self, auth_config: Dict):
         """
         Initializes the BitbucketImporter with authentication credentials and workspace.
 
@@ -34,8 +34,8 @@ class BitbucketDfraustProvider(BaseProvider):
         """
         super().__init__()
         self.__name__ = "bitbucket"
-        self.username = username
-        self.password = password
+        self.username = auth_config["expressions"]["username"]
+        self.password = auth_config["expressions"]["password"]
         # self.workspace = workspace
         self.base_url = f"https://api.bitbucket.org/2.0/repositories/"
         self.session = requests.Session()

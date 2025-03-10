@@ -31,7 +31,6 @@ class EC2Service(BaseAWSService):
         # Return a copy to prevent external modification
         return self._resources.copy()
     
-        
     # Function to generate an import block for Elastic IP (EIP)
     def aws_security_group(self, resource):
         name = resource['change']['after']['name']

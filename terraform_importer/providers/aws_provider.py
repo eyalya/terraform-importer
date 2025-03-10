@@ -16,11 +16,11 @@ global_logger = logging.getLogger("GlobalLogger")
 class AWSProvider(BaseProvider):
     """AWS-specific implementation of the BaseProvider."""
 
-    def __init__(self, auth_config: Dict):
+    def __init__(self, auth_config: Dict, provider_name: str = "aws"):
         super().__init__()
 
         self.auth_handler = AWSAuthHandler(auth_config)
-        self.__name__ = f"{auth_config["name"]}.{auth_config["alias"]}"
+        self.__name__ = provider_name
         self._sessions = self.auth_handler.get_session()
         self._resources_dict = {}
         

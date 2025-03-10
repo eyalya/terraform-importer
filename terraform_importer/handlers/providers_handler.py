@@ -45,7 +45,7 @@ class ProvidersHandler:
             provider_full_name = provider_data.get("full_name")
             if provider_full_name in self.providers_full_names:
                 provider_class = self.providers_full_names[provider_full_name]
-                providers[provider_name] = provider_class(provider_data)
+                providers[provider_name] = provider_class(provider_data, provider_name)
             else:
                 global_logger.warning(f"Unhandled provider type: {provider_full_name}")
                 providers[provider_name] = None

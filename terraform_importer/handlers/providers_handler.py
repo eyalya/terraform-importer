@@ -23,20 +23,22 @@ class ProvidersHandler:
         """
         Initializes the handler with a list of provider instances.
         Args:
-            providers (List[BaseProvider]): List of provider objects.
+            provider_config: Dict: List of provider objects.
         """
         # self.providers = {provider.__name__: provider for provider in providers}
-        stript_config = JsonConfigHandler.replace_variables(provider_config["configuration"]["provider_config"], provider_config["variables"])
-        stript_config = JsonConfigHandler.simplify_references(stript_config)
-        stript_config = JsonConfigHandler.simplify_constant_values(stript_config)
-        # self.providers = self.init_providers(stript_config)
+        #stript_config = JsonConfigHandler.replace_variables(provider_config["configuration"]["provider_config"], provider_config["variables"])
+        #stript_config = JsonConfigHandler.simplify_references(stript_config)
+        #stript_config = JsonConfigHandler.simplify_constant_values(stript_config)
+        stript_config = JsonConfigHandler.edit_provider_config(provider_config)
+        self.providers = self.init_providers(stript_config)
         # self.validate_providers()
     
     def init_providers(self, provider_config: Dict) -> Dict:
         """
-        Initializes the providers based on the configuration.
+        Initializes the ProvidersHandler instance and sets up the provider instances
+        based on the provided configuration.
         Args:
-            provider_config (Dict): The configuration for the providers.
+            provider_config (Dict): A dictionary containing the configuration for the providers.
         Returns:
             Dict: A dictionary of initialized providers.
         """

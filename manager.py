@@ -5,7 +5,7 @@ from typing import List, Optional
 class Manager:
     """Orchestrates the process of generating and importing resources."""
     
-    def __init__(self, terraform_config_path: str, output_path: str, options: Optional[List[str]] = None, targets: Optional[List[str]] = None):
+    def __init__(self, terraform_config_path: str, options: Optional[List[str]] = None, targets: Optional[List[str]] = None):
         """
         Initializes the manager with dependencies.
         Args:
@@ -17,7 +17,7 @@ class Manager:
         self.tf_handler = TerraformHandler(terraform_config_path, options)
         self.import_block_generator = ImportBlockGenerator(self.tf_handler)
         # self.importer = Importer()
-        self.output_path = output_path
+        #self.output_path = output_path
         self.targets = targets
     def run(self) -> None:
         """

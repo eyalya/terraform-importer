@@ -3,7 +3,7 @@ import boto3
 import logging
 
 class AWSAuthHandler:
-    def __init__(self, auth_config: dict):   ## how to refer to the instance attribute??
+    def __init__(self, auth_config: dict): 
         self.auth_config = auth_config
         self.logger = logging.getLogger("AWSAuthHandler")
         self.profile = None

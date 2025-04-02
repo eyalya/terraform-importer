@@ -45,7 +45,25 @@ class JsonConfigHandler:
                 new_dict[key] = JsonConfigHandler.simplify_references(value)
             return new_dict
         elif isinstance(json_data, list):
-            return [JsonConfigHandler.simplify_references(item) for item in json_data]
+            #return [JsonConfigHandler.simplify_references(item) for item in json_data]
+            #### modified the function to handle/simplify references in lists
+            # Process each item in the list recursively and simplify references if present
+            new_list = []
+            for item in json_data:
+                if isinstance(item, dict) and "references" in item:
+                    # If the item is a dict with references, simplify it
+                    if isinstance(item["references"], list) and len(item["references"]) == 1:
+                        if "value" in item["references"][0]:
+                            new_list.append(item["references"][0]["value"])
+                        else:
+                            new_list.append(item)
+                    else:
+                        new_list.append(item)
+                else:
+                    # Recursively process nested items
+                    new_list.append(JsonConfigHandler.simplify_references(item))
+            return new_list
+
         return json_data
         
     @staticmethod
@@ -70,7 +88,15 @@ class JsonConfigHandler:
                     new_dict[key] = JsonConfigHandler.simplify_constant_values(value)
             return new_dict
         elif isinstance(json_data, list):
-            return [JsonConfigHandler.simplify_constant_values(item) for item in json_data]
+            #return [JsonConfigHandler.simplify_constant_values(item) for item in json_data]
+            # modify the function to handle lists that contain dictionaries with constant_value fields
+            new_list = []
+            for item in json_data:
+                if isinstance(item, dict) and "constant_value" in item:
+                    new_list.append(item["constant_value"])
+                else:
+                    new_list.append(JsonConfigHandler.simplify_constant_values(item))
+            return new_list
         return json_data
     
     @staticmethod
@@ -115,4 +141,12 @@ class JsonConfigHandler:
         
         scan_json(json_data, "")
         return result
+
+    @staticmethod
+    def edit_provider_config(json_data: dict) -> dict:
+        stript_config = JsonConfigHandler.replace_variables(json_data["configuration"]["provider_config"], json_data["variables"])
+        stript_config = JsonConfigHandler.simplify_references(stript_config)
+        stript_config = JsonConfigHandler.simplify_constant_values(stript_config)
+        
+        return stript_config
     

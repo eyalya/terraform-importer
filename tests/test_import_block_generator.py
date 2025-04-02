@@ -279,3 +279,7 @@ class TestImportBlockGenerator(unittest.TestCase):
             self.generator.create_import_file(resources, output_path)
 
         self.generator.logger.error.assert_called_once_with(f"Failed to write to file {output_path}: Permission denied")
+
+
+if __name__ == "__main__":
+    unittest.main()

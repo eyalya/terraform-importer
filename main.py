@@ -4,13 +4,13 @@ import logging
 
 def main():
 
-    providers = [AWSProvider()]
+    #providers = [AWSProvider()]
     terraform_config_path = "path/to/terraform/configs"
-    output_path = "path/to/output/file"
+    #output_path = "path/to/output/file"
     options = []
     targets=[]
     
-    manager = Manager(providers, terraform_config_path, output_path, options, targets)
+    manager = Manager(terraform_config_path, options, targets)
     manager.run()
 
 if __name__ == "__main__":

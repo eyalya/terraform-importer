@@ -53,8 +53,8 @@ class ImportBlockGenerator:
         # Run Terraform plan and show to extract resource information
         self.logger.info("Running Terraform plan...")
         self._tf_handler.run_terraform_plan(targets)
-        
-        targets=[t.replace("-target=module.", "") for t in targets]
+        if targets is not None:
+            targets=[t.replace("-target=module.", "") for t in targets]
         self.logger.info("Running Terraform show...")
         return self._tf_handler.run_terraform_show(targets)
         

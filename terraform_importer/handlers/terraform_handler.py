@@ -170,7 +170,7 @@ class TerraformHandler:
         """
         try:
             show_command = self.__base_commands + ["show", "-json", "plan.out"]
-            stdout, stderr, return_code = self.run_terraform_command(show_command)
+            stdout, stderr, return_code = self.run_terraform_command(show_command) ## terraform show doesnt handle "targets"
 
             if return_code == 0:
                 json_data = json.loads(stdout)

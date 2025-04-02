@@ -75,6 +75,16 @@ class BitbucketDfraustProvider(BaseProvider):
             auth=self.auth,
             headers=self.headers
         )
+    #def get_all_results(self, func: Callable, *args, **kwargs) -> List[Dict[str, Any]]: ### modified function to include first page
+    #    results = []
+    #    resp_json, url = func(*args, **kwargs)  # First API call
+    #    results += resp_json["values"]  # Store the first page
+    #
+    #    while url:  # Follow pagination using API's `next` field
+    #        resp_json, url = func(*args, **kwargs, url=url)
+    #        results += resp_json["values"]
+    #
+    #    return results
     
     def get_all_results(self, func: Callable, *args, **kwargs) -> List[Dict[str, Any]]:
         """
@@ -119,7 +129,7 @@ class BitbucketDfraustProvider(BaseProvider):
             for item in envs:
                 if item.get("key") == variable:
                     return item["uuid"]
-        except KeyError:
+        except KeyError: ##TODO: fix for better exception
             global_logger.error(f"Response dont have values and has:")
             global_logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
@@ -138,14 +148,16 @@ class BitbucketDfraustProvider(BaseProvider):
         Returns:
             List[Dict[str, Any]]: A list of deployment variables with their UUIDs.
         """
+        resp_json = None
+
         if not url:
             global_logger.debug(f"url: {url}")
             if deployment_uuid:
                 global_logger.debug("Get deployment variable")
-                url = f"{self.base_url}/{repository_name}/deployments_config/environments/{deployment_uuid}/variables?page=0"
+                url = f"{self.base_url}{repository_name}/deployments_config/environments/{deployment_uuid}/variables?page=0"
             else:
                 global_logger.debug("Get repository variable")
-                url = f"{self.base_url}/{repository_name}/pipelines_config/variables/?page=0"
+                url = f"{self.base_url}{repository_name}/pipelines_config/variables/?page=0"
 
         try:
             response = self.run_command(url)
@@ -174,7 +186,7 @@ class BitbucketDfraustProvider(BaseProvider):
         Returns:
             Optional[str]: The UUID of the deployment, or None if not found.
         """
-        url = f"{self.base_url}/{repository_name}/environments/"
+        url = f"{self.base_url}{repository_name}/environments/"
 
         # headers = {
         # "Accept": "application/json",
@@ -194,17 +206,19 @@ class BitbucketDfraustProvider(BaseProvider):
         except requests.RequestException as e:
             global_logger.error(f"Request failed: {e}")
         
-        global_logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
+        if 'resp_json' in locals():
+            global_logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
 
-        envs = json.loads(response.text)
-        
-        try:
-            for item in envs["values"]:
-                if item.get("slug") == deployment:
-                    return item["uuid"]
-        except KeyError:
-            global_logger.error(f"Response dont have values and has:")
-            global_logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
+            envs = resp_json
+            #envs = json.loads(response.text)
+            
+            try:
+                for item in envs.get("values", []):
+                    if item.get("slug") == deployment:
+                        return item["uuid"]
+            except KeyError:
+                global_logger.error(f"Response dont have values and has:")
+                global_logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
 
     def bitbucket_deployment(self, resource_block: Dict[str, Any]) -> str:

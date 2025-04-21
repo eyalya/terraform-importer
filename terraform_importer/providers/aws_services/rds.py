@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict
 from abc import ABC, abstractmethod
 import boto3
+import botocore
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
@@ -14,7 +15,7 @@ class EC2Service(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        #self.client = self.get_client("rds")
+        self.client = self.get_client("rds")
         self._resources = [
             "aws_db_instance",
             "aws_db_subnet_group"
@@ -30,7 +31,51 @@ class EC2Service(BaseAWSService):
         return self._resources.copy()
 
     def aws_db_instance(self, resource):
-        return f"{resource['change']['after']['identifier']}"
-
+        """
+        Validates if the specified RDS DB instance exists and returns its identifier.
+        """
+        db_identifier = resource['change']['after'].get('identifier')
+        if not db_identifier:
+            global_logger.error("DB instance identifier is missing.")
+            return None
+        try:
+            response = self.client.describe_db_instances(DBInstanceIdentifier=db_identifier)
+            if response.get('DBInstances'):
+                return db_identifier
+            else:
+                global_logger.error(f"DB instance '{db_identifier}' not found.")
+        except self.client.exceptions.DBInstanceNotFoundFault:
+            global_logger.error(f"DB instance '{db_identifier}' does not exist.")
+        except botocore.exceptions.ClientError as e:
+            global_logger.error(f"Error retrieving DB instance '{db_identifier}': {e}")
+        except Exception as e:
+            global_logger.error(f"Unexpected error while retrieving DB instance '{db_identifier}': {e}")
+        return None
+    
     def aws_db_subnet_group(self, resource):
-         return f"{resource['change']['after']['name']}"
+        """
+        Validates if the specified RDS DB subnet group exists and returns its name.
+        """
+        subnet_group_name = resource['change']['after'].get('name')
+        if not subnet_group_name:
+            global_logger.error("DB subnet group name is missing.")
+            return None
+        try:
+            response = self.client.describe_db_subnet_groups(DBSubnetGroupName=subnet_group_name)
+            if response.get('DBSubnetGroups'):
+                return subnet_group_name
+            else:
+                global_logger.error(f"DB subnet group '{subnet_group_name}' not found.")
+        except self.client.exceptions.DBSubnetGroupNotFoundFault:
+            global_logger.error(f"DB subnet group '{subnet_group_name}' does not exist.")
+        except botocore.exceptions.ClientError as e:
+            global_logger.error(f"Error retrieving DB subnet group '{subnet_group_name}': {e}")
+        except Exception as e:
+            global_logger.error(f"Unexpected error while retrieving DB subnet group '{subnet_group_name}': {e}")
+        return None
+
+    #def aws_db_instance(self, resource):
+    #    return f"{resource['change']['after']['identifier']}"
+#
+    #def aws_db_subnet_group(self, resource):
+    #     return f"{resource['change']['after']['name']}"

@@ -120,6 +120,8 @@ class JsonConfigHandler:
                         new_path = f"{path}.module" if path else "module"
                     elif key == "resources":
                         new_path = path  # Remove 'resources' from path
+                    elif key == "module":
+                        new_path = path
                     else:
                         new_path = f"{path}.{key}" if path else key
                     

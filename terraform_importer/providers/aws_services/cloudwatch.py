@@ -14,7 +14,7 @@ class CloudWatchService(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        self.logs_client = self.get_client("logs", provider)
+        self.logs_client = self.get_client("logs")
         # Get account ID using STS client
         sts_client = self.get_client('sts')
         self.account_id = sts_client.get_caller_identity()['Account']
@@ -40,25 +40,105 @@ class CloudWatchService(BaseAWSService):
         return self._resources.copy()
 
     def aws_cloudwatch_event_target(self, resource):
-        return f"{resource['change']['after']['rule']}/{resource['change']['after']['target_id']}"
+        try:
+            rule_name = resource['change']['after']['rule']
+            target_id = resource['change']['after']['target_id']
+            
+            # List targets for the rule
+            response = self.logs_client.list_targets_by_rule(
+                Rule=rule_name
+            )
+            
+            # Check if target exists
+            for target in response['Targets']:
+                if target['Id'] == target_id:
+                    return f"{rule_name}/{target_id}"
+                
+            global_logger.warning(f"CloudWatch event target {target_id} not found in rule {rule_name}")
+            return None
+        except Exception as e:
+            global_logger.error(f"Error checking CloudWatch event target: {e}")
+            return None
 
     def aws_cloudwatch_log_group(self, resource):
         try:
-            return resource['change']['after']['name']
+            log_group_name = resource['change']['after']['name']
+            
+            # Check if log group exists
+            response = self.logs_client.describe_log_groups(
+                logGroupNamePrefix=log_group_name
+            )
+            
+            # Check exact match in returned log groups
+            for log_group in response['logGroups']:
+                if log_group['logGroupName'] == log_group_name:
+                    return log_group_name
+                
+            global_logger.warning(f"CloudWatch log group {log_group_name} not found")
+            return None
         except Exception as e:
-            global_logger.error(f"cloudwatch_event_target: An error occurred: {e}")
+            global_logger.error(f"cloudwatch_log_group: An error occurred: {e}")
             return None
 
     def aws_cloudwatch_metric_alarm(self, resource):
-        return f"{resource['change']['after']['alarm_name']}"
+        try:
+            alarm_name = resource['change']['after']['alarm_name']
+            
+            # Check if alarm exists
+            response = self.cloudwatch_client.describe_alarms(
+                AlarmName=alarm_name
+            )
+            
+            # Check exact match in returned alarms
+            for alarm in response['MetricAlarms']:
+                if alarm['AlarmName'] == alarm_name:
+                    return alarm_name
+            global_logger.warning(f"CloudWatch metric alarm {alarm_name} not found")
+            return None
+        except Exception as e:
+            global_logger.error(f"cloudwatch_metric_alarm: An error occurred: {e}")
+            return None
 
     def aws_cloudwatch_event_rule(self, resource):
-        return f"{resource['change']['after']['name']}"
+        try:
+            rule_name = resource['change']['after']['name']
+            
+            # Check if rule exists
+            response = self.cloudwatch_client.describe_rules(
+                NamePrefix=rule_name
+            )
+            
+            # Check exact match in returned rules
+            for rule in response['Rules']:
+                if rule['Name'] == rule_name:
+                    return rule_name    
+            global_logger.warning(f"CloudWatch event rule {rule_name} not found")
+            return None
+        except Exception as e:
+            global_logger.error(f"cloudwatch_event_rule: An error occurred: {e}")
+            return None
 
     def aws_cloudwatch_log_metric_filter(self, resource):
-        name = f"{resource['change']['after']['name']}"
-        log_group_name = f"{resource['change']['after']['log_group_name']}"
-        return  f"{log_group_name}:{name}"    
+        try:
+            name = resource['change']['after']['name']
+            log_group_name = resource['change']['after']['log_group_name']
+            
+            # Check if metric filter exists
+            response = self.logs_client.describe_metric_filters(
+                logGroupName=log_group_name,
+                filterNamePrefix=name
+            )
+            
+            # Check exact match in returned filters
+            for filter in response['metricFilters']:
+                if filter['filterName'] == name:
+                    return f"{log_group_name}:{name}"
+                
+            global_logger.warning(f"CloudWatch metric filter {name} not found in log group {log_group_name}")
+            return None
+        except Exception as e:
+            global_logger.error(f"cloudwatch_log_metric_filter: An error occurred: {e}")
+            return None
     
     def aws_cloudwatch_query_definition(self, resource, sessions):
         name = f"{resource['change']['after']['name']}"

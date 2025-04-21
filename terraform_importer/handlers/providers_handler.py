@@ -15,7 +15,7 @@ class ProvidersHandler:
 
     providers_full_names = {
         "registry.terraform.io/hashicorp/aws": AWSProvider,
-        "registry.terraform.io/hashicorp/bitbucket": BitbucketDfraustProvider,
+        "registry.terraform.io/drfaust92/bitbucket": BitbucketDfraustProvider,
         # "registry.terraform.io/hashicorp/gcp": GCPProvider
     }
     

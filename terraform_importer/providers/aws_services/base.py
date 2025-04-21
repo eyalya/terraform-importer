@@ -16,7 +16,7 @@ class BaseAWSService(ABC):
 
     def __init__(self, session: boto3.Session ):
         # Shared data for all AWS services
-        self.sessions = session
+        self.session = session
     
     def get_client(self, service_name: str):
         """

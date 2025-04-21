@@ -49,7 +49,7 @@ class LambdaService(BaseAWSService):
 
         try:
             # List all versions of the specified Lambda Layer
-            response = lambda_client.list_layer_versions(LayerName=layer_name)
+            response = self.lambda_client.list_layer_versions(LayerName=layer_name)
             # Check if there are versions available
             if 'LayerVersions' in response and response['LayerVersions']:
                 # Get the ARN of the latest version
@@ -59,6 +59,6 @@ class LambdaService(BaseAWSService):
                 global_logger.error(f"No versions found for layer: {layer_name}")
                 return None
     
-        except lambda_client.exceptions.ResourceNotFoundException:
+        except self.lambda_client.exceptions.ResourceNotFoundException:
             global_logger.error(f"Layer '{layer_name}' not found.")
             return None

@@ -102,12 +102,16 @@ class BitbucketDfraustProvider(BaseProvider):
         resp_json, url = func(*args, **kwargs)
         page_num = 1
         
-        while resp_json["values"]:
-            cleaned = url.rstrip(string.digits)
-            url = cleaned + str(page_num)
-            page_num += 1
-            resp_json, url = func(*args, **kwargs, url=url)
-            results += resp_json["values"]
+        try:
+            while resp_json["values"]:
+                cleaned = url.rstrip(string.digits)
+                url = cleaned + str(page_num)
+                page_num += 1
+                resp_json, url = func(*args, **kwargs, url=url)
+                results += resp_json["values"]
+        except Exception as e:
+            global_logger.debug("Bitbucket: Get all result failed with {e}")    
+            return None
 
         global_logger.debug(json.dumps(json.loads(json.dumps(results)), sort_keys=True, indent=4, separators=(",", ": ")))
         return results

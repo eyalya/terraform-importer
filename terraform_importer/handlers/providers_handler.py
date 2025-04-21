@@ -90,10 +90,11 @@ class ProvidersHandler:
         address       = resource_block['address']
 
         try:
-            id = self.providers[provider_name].get_id(resource_type, resource_block)
+            if self.providers[provider_name]:
+                id = self.providers[provider_name].get_id(resource_type, resource_block)
+                if id:
+                    return {"address": address, "id": id}
         except KeyError:
             global_logger.warning(f"Provider type {provider_name} doesnt exist")
-            return None
-        if id:
-            return {"address": address, "id": id}
+        return None
         

@@ -15,8 +15,8 @@ class CloudWatchService(BaseAWSService):
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
-        self.logs_client = self.get_client("logs", provider)
-        self.events_client = self.get_client("events", provider)
+        self.logs_client = self.get_client("logs")
+        self.events_client = self.get_client("events")
         # Get account ID using STS client
         sts_client = self.get_client('sts')
         self.account_id = sts_client.get_caller_identity()['Account']

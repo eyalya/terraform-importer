@@ -114,7 +114,7 @@ class ImportBlockGenerator:
             Optional[str]: The provider config key if found, None otherwise
         """
         
-        address = re.sub(r'\[\d+\]', '', resource['address'])
+        address = re.sub(r'\[\d+\]|\["[^"]+"\]', '', resource['address'])
         try:
             provider = address_to_provider_dict.get(address)
             self.logger.debug(f"Found provider {provider} for resource {address}")

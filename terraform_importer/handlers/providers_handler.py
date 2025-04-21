@@ -15,7 +15,7 @@ class ProvidersHandler:
 
     providers_full_names = {
         "registry.terraform.io/hashicorp/aws": AWSProvider,
-        "registry.terraform.io/hashicorp/bitbucket": BitbucketDfraustProvider,
+        "registry.terraform.io/drfaust92/bitbucket": BitbucketDfraustProvider,
         # "registry.terraform.io/hashicorp/gcp": GCPProvider
     }
     
@@ -45,7 +45,7 @@ class ProvidersHandler:
         providers = {}
         for provider_name, provider_data in provider_config.items():
             provider_full_name = provider_data.get("full_name")
-            if provider_full_name in self.providers_full_names:
+            if provider_full_name in self.providers_full_names and "expressions" in provider_data:
                 provider_class = self.providers_full_names[provider_full_name]
                 providers[provider_name] = provider_class(provider_data, provider_name)
             else:
@@ -90,10 +90,11 @@ class ProvidersHandler:
         address       = resource_block['address']
 
         try:
-            id = self.providers[provider_name].get_id(resource_type, resource_block)
+            if self.providers[provider_name]:
+                id = self.providers[provider_name].get_id(resource_type, resource_block)
+                if id:
+                    return {"address": address, "id": id}
         except KeyError:
             global_logger.warning(f"Provider type {provider_name} doesnt exist")
-            return None
-        if id:
-            return {"address": address, "id": id}
+        return None
         

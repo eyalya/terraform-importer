@@ -48,47 +48,47 @@ class GENERALService(BaseAWSService):
     #    return resource['change']['after']['name']
 
     def aws_ecr_repository(self, resource):
-    """
-    Validates if the AWS ECR repository exists and returns its name.
-
-    Args:
-        resource (dict): The Terraform resource block.
-
-    Returns:
-        str: The ECR repository name if it exists, otherwise None.
-    """
-    try:
-        # Extract repository name
-        repository_name = resource['change']['after'].get('name')
-
-        if not repository_name:
-            global_logger.error("ECR repository name is missing in the resource data.")
+        """
+        Validates if the AWS ECR repository exists and returns its name.
+    
+        Args:
+            resource (dict): The Terraform resource block.
+    
+        Returns:
+            str: The ECR repository name if it exists, otherwise None.
+        """
+        try:
+            # Extract repository name
+            repository_name = resource['change']['after'].get('name')
+    
+            if not repository_name:
+                global_logger.error("ECR repository name is missing in the resource data.")
+                return None
+    
+            # Check if the repository exists
+            response = self.ecr_client.describe_repositories(repositoryNames=[repository_name])
+    
+            # If the repository exists, return its name
+            if response.get('repositories'):
+                return repository_name
+    
+            global_logger.error(f"ECR repository '{repository_name}' not found.")
             return None
-
-        # Check if the repository exists
-        response = self.ecr_client.describe_repositories(repositoryNames=[repository_name])
-
-        # If the repository exists, return its name
-        if response.get('repositories'):
-            return repository_name
-
-        global_logger.error(f"ECR repository '{repository_name}' not found.")
+    
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == 'RepositoryNotFoundException':
+                global_logger.error(f"ECR repository '{repository_name}' does not exist.")
+            else:
+                global_logger.error(f"AWS ClientError while validating ECR repository: {e}")
+        except botocore.exceptions.BotoCoreError as e:
+            global_logger.error(f"AWS BotoCoreError: {e}")
+        except KeyError as e:
+            global_logger.error(f"Missing key in resource data: {e}")
+        except Exception as e:
+            global_logger.error(f"Unexpected error occurred: {e}")
+    
         return None
-
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'RepositoryNotFoundException':
-            global_logger.error(f"ECR repository '{repository_name}' does not exist.")
-        else:
-            global_logger.error(f"AWS ClientError while validating ECR repository: {e}")
-    except botocore.exceptions.BotoCoreError as e:
-        global_logger.error(f"AWS BotoCoreError: {e}")
-    except KeyError as e:
-        global_logger.error(f"Missing key in resource data: {e}")
-    except Exception as e:
-        global_logger.error(f"Unexpected error occurred: {e}")
-
-    return None
-
+    
     #def aws_sqs_queue(self, resource):
     #    name = resource['change']['after']['name']
     #    try:
@@ -386,7 +386,7 @@ class GENERALService(BaseAWSService):
         except Exception as e:
             global_logger.error(f"Unexpected error occurred: {e}")
      
-         return None
+        return None
 
     #def aws_elasticache_subnet_group(self, resource):
     #    return resource['change']['after']['name']

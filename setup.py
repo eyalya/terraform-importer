@@ -5,11 +5,12 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        # Add your dependencies here
+        "boto3",
+        "requests",
     ],
     entry_points={
         'console_scripts': [
-            'terraform-import-tool=main:main'
+            'terraform-import-tool=terraform_importer.main:main'
         ]
     },
 )

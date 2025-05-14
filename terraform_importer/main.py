@@ -1,43 +1,14 @@
 from terraform_importer.manager import Manager
+from terraform_importer.cli import TerraformImporterCLI
 import logging
 import argparse
 import os
 import sys
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Terraform Importer.")
 
-    # Required: path to config
-    parser.add_argument(
-        "--config", required=True,
-        help="Path to Terraform configuration directory"
-    )
-
-    # Optional: repeated options
-    parser.add_argument(
-        "--option", action="append", default=[],
-        help="Optional flags or arguments to terraform command (can be repeated)"
-    )
-
-    # Optional: repeated targets
-    parser.add_argument(
-        "--target", action="append", default=[],
-        help="Target resource addresses to import (can be repeated)"
-    )
-
-    # Optional: logging level
-    parser.add_argument(
-        "--log-level", default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level (default: INFO)"
-    )
-
-    args = parser.parse_args()
-
-    # Validate config path
-    if not os.path.isdir(args.config):
-        print(f"Error: '{args.config}' is not a valid directory.")
-        sys.exit(1)
+    cli = TerraformImporterCLI()
+    args = cli.parse_args()
 
     # Set up logging
     logging.basicConfig(

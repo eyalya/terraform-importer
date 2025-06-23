@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'terraform-import-tool=terraform_importer.main:main'
+            'terraform-importer=terraform_importer.main:main'
         ]
     },
 )

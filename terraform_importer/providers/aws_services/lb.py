@@ -5,16 +5,13 @@ import botocore
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class LoadBalancerService(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("elbv2")
         self._resources = [
             "aws_lb_target_group",
@@ -36,7 +33,7 @@ class LoadBalancerService(BaseAWSService):
         """
         name = resource['change']['after'].get('name')
         if not name:
-            global_logger.error("Target group name is missing.")
+            self.logger.error("Target group name is missing.")
             return None
         try:
             paginator = self.client.get_paginator('describe_target_groups')
@@ -44,11 +41,11 @@ class LoadBalancerService(BaseAWSService):
                 for target_group in page.get('TargetGroups', []):
                     if target_group.get('TargetGroupName') == name:
                         return target_group.get('TargetGroupArn')
-            global_logger.error(f"Target group '{name}' not found.")
+            self.logger.error(f"Target group '{name}' not found.")
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"Error retrieving target group '{name}': {e}")
+            self.logger.error(f"Error retrieving target group '{name}': {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error while retrieving target group '{name}': {e}")
+            self.logger.error(f"Unexpected error while retrieving target group '{name}': {e}")
         return None
 
         def aws_lb_listener(self, resource):
@@ -61,7 +58,7 @@ class LoadBalancerService(BaseAWSService):
                 protocol = resource['change']['after'].get('protocol')
         
                 if not lb_arn or port is None or not protocol:
-                    global_logger.error("Missing required values: load_balancer_arn, port, or protocol.")
+                    self.logger.error("Missing required values: load_balancer_arn, port, or protocol.")
                     return None
         
                 response = self.client.describe_listeners(LoadBalancerArn=lb_arn)
@@ -69,14 +66,14 @@ class LoadBalancerService(BaseAWSService):
                     if listener.get('Port') == port and listener.get('Protocol') == protocol:
                         return listener.get('ListenerArn')
         
-                global_logger.error(f"No matching listener found on Load Balancer '{lb_arn}' for port {port} and protocol '{protocol}'.")
+                self.logger.error(f"No matching listener found on Load Balancer '{lb_arn}' for port {port} and protocol '{protocol}'.")
         
             except botocore.exceptions.ClientError as e:
-                global_logger.error(f"ClientError while retrieving listener for Load Balancer '{lb_arn}': {e}")
+                self.logger.error(f"ClientError while retrieving listener for Load Balancer '{lb_arn}': {e}")
             except KeyError as e:
-                global_logger.error(f"Missing key in resource data: {e}")
+                self.logger.error(f"Missing key in resource data: {e}")
             except Exception as e:
-                global_logger.error(f"Unexpected error while retrieving listener: {e}")
+                self.logger.error(f"Unexpected error while retrieving listener: {e}")
         
             return None
 
@@ -90,7 +87,7 @@ class LoadBalancerService(BaseAWSService):
     #                if target_group['TargetGroupName'] == name:
     #                    return target_group['TargetGroupArn']
     #    except self.client.exceptions.ClientError as e:
-    #        global_logger.error(f"Error retrieving target group: {e}")
+    #        self.logger.error(f"Error retrieving target group: {e}")
     #    return None  # Return None if no target group is found with the given name
 #
     #def aws_lb_listener(self, resource):
@@ -106,9 +103,9 @@ class LoadBalancerService(BaseAWSService):
     #            if listener['Port'] == port and listener['Protocol'] == protocol:
     #                return listener['ListenerArn']
     #        else:
-    #            global_logger.warn("lb listner: No matching listener found")
+    #            self.logger.warn("lb listner: No matching listener found")
     #    except KeyError as e:
-    #        global_logger.warn("lb listner: Not enough information")
+    #        self.logger.warn("lb listner: Not enough information")
     #    return None  # Return None if no matching listener found
 
     #def aws_lb_listener_rule(self,resource):

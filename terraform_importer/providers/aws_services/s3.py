@@ -5,16 +5,13 @@ import botocore
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class S3Service(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("s3")
         self._resources = [
             "aws_s3_bucket",
@@ -41,13 +38,13 @@ class S3Service(BaseAWSService):
     def aws_s3_bucket(self, resource):
         bucket = resource['change']['after'].get('bucket')
         if not bucket:
-            global_logger.error("Bucket name is missing.")
+            self.logger.error("Bucket name is missing.")
             return None
         try:
             self.client.head_bucket(Bucket=bucket)
             return bucket
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"S3 bucket '{bucket}' not found or inaccessible: {e}")
+            self.logger.error(f"S3 bucket '{bucket}' not found or inaccessible: {e}")
         return None
     
     def aws_s3_bucket_notification(self, resource):
@@ -57,9 +54,9 @@ class S3Service(BaseAWSService):
             config = self.client.get_bucket_notification_configuration(Bucket=bucket)
             if any(config.get(k) for k in ['TopicConfigurations', 'QueueConfigurations', 'LambdaFunctionConfigurations']):
                 return bucket
-            global_logger.error(f"No notification config found for bucket '{bucket}'.")
+            self.logger.error(f"No notification config found for bucket '{bucket}'.")
         except Exception as e:
-            global_logger.error(f"Error checking notification config for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking notification config for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_ownership_controls(self, resource):
@@ -69,7 +66,7 @@ class S3Service(BaseAWSService):
             self.client.get_bucket_ownership_controls(Bucket=bucket)
             return bucket
         except Exception as e:
-            global_logger.error(f"Error checking ownership controls for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking ownership controls for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_policy(self, resource):
@@ -79,7 +76,7 @@ class S3Service(BaseAWSService):
             self.client.get_bucket_policy(Bucket=bucket)
             return bucket
         except Exception as e:
-            global_logger.error(f"Error checking policy for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking policy for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_public_access_block(self, resource):
@@ -89,7 +86,7 @@ class S3Service(BaseAWSService):
             self.client.get_public_access_block(Bucket=bucket)
             return bucket
         except Exception as e:
-            global_logger.error(f"Error checking public access block for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking public access block for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_server_side_encryption_configuration(self, resource):
@@ -99,7 +96,7 @@ class S3Service(BaseAWSService):
             self.client.get_bucket_encryption(Bucket=bucket)
             return bucket
         except Exception as e:
-            global_logger.error(f"Error checking encryption config for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking encryption config for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_lifecycle_configuration(self, resource):
@@ -109,9 +106,9 @@ class S3Service(BaseAWSService):
             config = self.client.get_bucket_lifecycle_configuration(Bucket=bucket)
             if config.get("Rules"):
                 return bucket
-            global_logger.error(f"No lifecycle rules found for bucket '{bucket}'.")
+            self.logger.error(f"No lifecycle rules found for bucket '{bucket}'.")
         except Exception as e:
-            global_logger.error(f"Error checking lifecycle config for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking lifecycle config for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_versioning(self, resource):
@@ -121,9 +118,9 @@ class S3Service(BaseAWSService):
             versioning = self.client.get_bucket_versioning(Bucket=bucket)
             if versioning.get("Status") in ("Enabled", "Suspended"):
                 return bucket
-            global_logger.error(f"Versioning is not enabled or suspended for bucket '{bucket}'.")
+            self.logger.error(f"Versioning is not enabled or suspended for bucket '{bucket}'.")
         except Exception as e:
-            global_logger.error(f"Error checking versioning for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking versioning for bucket '{bucket}': {e}")
         return None
     
     def aws_s3_bucket_acl(self, resource):       
@@ -132,7 +129,7 @@ class S3Service(BaseAWSService):
         expected_owner = resource['change']['after'].get('expected_bucket_owner')
     
         if not bucket:
-            global_logger.error("Bucket name is missing.")
+            self.logger.error("Bucket name is missing.")
             return None
     
         try:
@@ -147,7 +144,7 @@ class S3Service(BaseAWSService):
     
             return ",".join(parts)
         except Exception as e:
-            global_logger.error(f"Error checking ACL for bucket '{bucket}': {e}")
+            self.logger.error(f"Error checking ACL for bucket '{bucket}': {e}")
         return None
     
     #def aws_s3_bucket(self, resource):

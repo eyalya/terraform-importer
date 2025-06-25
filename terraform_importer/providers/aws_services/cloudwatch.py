@@ -5,16 +5,13 @@ import botocore.exceptions
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class CloudWatchService(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.logs_client = self.get_client("logs")
         self.events_client = self.get_client("events")
         # Get account ID using STS client
@@ -67,18 +64,18 @@ class CloudWatchService(BaseAWSService):
                     return f"{rule_name}/{target_id}"
     
             # If target not found
-            global_logger.error(f"CloudWatch Event Target '{target_id}' not found in rule '{rule_name}'")
+            self.logger.error(f"CloudWatch Event Target '{target_id}' not found in rule '{rule_name}'")
             return None
     
         except Exception as e:
-            global_logger.error(f"Failed to validate CloudWatch Event Target: {e}")
+            self.logger.error(f"Failed to validate CloudWatch Event Target: {e}")
             return None
 
     #def aws_cloudwatch_log_group(self, resource):
     #    try:
     #        return resource['change']['after']['name']
     #    except Exception as e:
-    #        global_logger.error(f"cloudwatch_event_target: An error occurred: {e}")
+    #        self.logger.error(f"cloudwatch_event_target: An error occurred: {e}")
     #        return None
 
     #def aws_cloudwatch_metric_alarm(self, resource):
@@ -106,15 +103,15 @@ class CloudWatchService(BaseAWSService):
                     return log_group_name
     
             # If log group is not found
-            global_logger.error(f"CloudWatch Log Group '{log_group_name}' not found")
+            self.logger.error(f"CloudWatch Log Group '{log_group_name}' not found")
             return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except boto3.exceptions.Boto3Error as e:
-            global_logger.error(f"Failed to validate CloudWatch Log Group: {e}")
+            self.logger.error(f"Failed to validate CloudWatch Log Group: {e}")
         except Exception as e:
-            global_logger.error(f"An unexpected error occurred: {e}")
+            self.logger.error(f"An unexpected error occurred: {e}")
     
         return None
 
@@ -146,15 +143,15 @@ class CloudWatchService(BaseAWSService):
                     return rule_name
     
             # If event rule is not found
-            global_logger.error(f"CloudWatch Event Rule '{rule_name}' not found")
+            self.logger.error(f"CloudWatch Event Rule '{rule_name}' not found")
             return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except boto3.exceptions.Boto3Error as e:
-            global_logger.error(f"Failed to validate CloudWatch Event Rule: {e}")
+            self.logger.error(f"Failed to validate CloudWatch Event Rule: {e}")
         except Exception as e:
-            global_logger.error(f"An unexpected error occurred: {e}")
+            self.logger.error(f"An unexpected error occurred: {e}")
     
         return None
 
@@ -186,15 +183,15 @@ class CloudWatchService(BaseAWSService):
                     return f"{log_group_name}:{name}"
     
             # If metric filter is not found
-            global_logger.error(f"CloudWatch Log Metric Filter '{name}' not found in log group '{log_group_name}'")
+            self.logger.error(f"CloudWatch Log Metric Filter '{name}' not found in log group '{log_group_name}'")
             return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except boto3.exceptions.Boto3Error as e:
-            global_logger.error(f"Failed to validate CloudWatch Log Metric Filter: {e}")
+            self.logger.error(f"Failed to validate CloudWatch Log Metric Filter: {e}")
         except Exception as e:
-            global_logger.error(f"An unexpected error occurred: {e}")
+            self.logger.error(f"An unexpected error occurred: {e}")
     
         return None
     
@@ -213,5 +210,5 @@ class CloudWatchService(BaseAWSService):
                 if item['name'] == name:
                     return f"arn:aws:logs:{self.region}:{self.account_id}:query-definition:{item['queryDefinitionId']}"
         except Exception as e:
-            global_logger.error(f"An error occurred: {e}")
+            self.logger.error(f"An error occurred: {e}")
         return None

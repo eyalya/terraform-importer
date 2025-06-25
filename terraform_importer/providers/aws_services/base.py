@@ -3,11 +3,6 @@ from abc import ABC, abstractmethod
 import boto3
 import logging
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
-
 # Abstract Base Class for AWS Services
 class BaseAWSService(ABC):
     """
@@ -17,6 +12,7 @@ class BaseAWSService(ABC):
     def __init__(self, session: boto3.Session ):
         # Shared data for all AWS services
         self.session = session
+        self.logger = logging.getLogger(__name__)
     
     def get_client(self, service_name: str):
         """
@@ -48,7 +44,7 @@ class BaseAWSService(ABC):
             method = getattr(self, resource_type)
             return method(resource_block)
         else:
-            global_logger.info(f"No such resource_type: {resource_type}")
+            self.logger.info(f"No such resource_type: {resource_type}")
             return None
 
     

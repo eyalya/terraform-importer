@@ -5,10 +5,6 @@ import json
 import string
 import logging
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 # BitbucketDfraustProvider
 class BitbucketDfraustProvider(BaseProvider):
     """
@@ -110,10 +106,10 @@ class BitbucketDfraustProvider(BaseProvider):
                 resp_json, url = func(*args, **kwargs, url=url)
                 results += resp_json["values"]
         except Exception as e:
-            global_logger.debug("Bitbucket: Get all result failed with {e}")    
+            self.logger.debug("Bitbucket: Get all result failed with {e}")    
             return None
 
-        global_logger.debug(json.dumps(json.loads(json.dumps(results)), sort_keys=True, indent=4, separators=(",", ": ")))
+        self.logger.debug(json.dumps(json.loads(json.dumps(results)), sort_keys=True, indent=4, separators=(",", ": ")))
         return results
 
     def get_variable_uuid(self, repository_name: str, variable: str, deployment_uuid: Optional[str] = None,) -> Optional[str]:
@@ -134,8 +130,8 @@ class BitbucketDfraustProvider(BaseProvider):
                 if item.get("key") == variable:
                     return item["uuid"]
         except KeyError: ##TODO: fix for better exception
-            global_logger.error(f"Response dont have values and has:")
-            global_logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
+            self.logger.error(f"Response dont have values and has:")
+            self.logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
 
     def list_deployment_variables_uuid(
@@ -155,12 +151,12 @@ class BitbucketDfraustProvider(BaseProvider):
         resp_json = None
 
         if not url:
-            global_logger.debug(f"url: {url}")
+            self.logger.debug(f"url: {url}")
             if deployment_uuid:
-                global_logger.debug("Get deployment variable")
+                self.logger.debug("Get deployment variable")
                 url = f"{self.base_url}{repository_name}/deployments_config/environments/{deployment_uuid}/variables?page=0"
             else:
-                global_logger.debug("Get repository variable")
+                self.logger.debug("Get repository variable")
                 url = f"{self.base_url}{repository_name}/pipelines_config/variables/?page=0"
 
         try:
@@ -168,15 +164,15 @@ class BitbucketDfraustProvider(BaseProvider):
             
             # Check for successful authentication
             if response.status_code == 200:
-               global_logger.debug("Get Variables")
+               self.logger.debug("Get Variables")
                resp_json = response.json()
             else:
-                global_logger.error(f"Request failed: {response.status_code} - {response.reason}")
+                self.logger.error(f"Request failed: {response.status_code} - {response.reason}")
                 return None, None
         except requests.RequestException as e:
-            global_logger.error(f"Request failed: {e}")
+            self.logger.error(f"Request failed: {e}")
         
-        global_logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
+        self.logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
         return resp_json, url
 
     def get_deployment_uuid(self, repository_name: str, deployment: str) -> Optional[str]:
@@ -202,16 +198,16 @@ class BitbucketDfraustProvider(BaseProvider):
             
             # Check for successful authentication
             if response.status_code == 200:
-               global_logger.debug("Get Variables")
+               self.logger.debug("Get Variables")
                resp_json = response.json()
             else:
-                global_logger.error(f"Request failed: {response.status_code} - {response.reason}")
+                self.logger.error(f"Request failed: {response.status_code} - {response.reason}")
                 return None
         except requests.RequestException as e:
-            global_logger.error(f"Request failed: {e}")
+            self.logger.error(f"Request failed: {e}")
         
         if 'resp_json' in locals():
-            global_logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
+            self.logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
 
             envs = resp_json
             #envs = json.loads(response.text)
@@ -221,8 +217,8 @@ class BitbucketDfraustProvider(BaseProvider):
                     if item.get("slug") == deployment:
                         return item["uuid"]
             except KeyError:
-                global_logger.error(f"Response dont have values and has:")
-                global_logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
+                self.logger.error(f"Response dont have values and has:")
+                self.logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
 
     def bitbucket_deployment(self, resource_block: Dict[str, Any]) -> str:
@@ -261,7 +257,7 @@ class BitbucketDfraustProvider(BaseProvider):
             id = self.get_variable_uuid(repository_name, variable_name, deployment_id)
             return f"{deployment}/{id}"
         except KeyError:
-            global_logger.debug(f"Deployment not creates")
+            self.logger.debug(f"Deployment not creates")
         return None    
 
     def bitbucket_repository_variable(self, resource_block: Dict[str, Any]) -> str:

@@ -5,16 +5,13 @@ import botocore.exceptions
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class EC2Service(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("ec2")
         self._resources = [
             "aws_security_group",
@@ -61,15 +58,15 @@ class EC2Service(BaseAWSService):
             if response.get('SecurityGroups'):  # Check if SecurityGroups key exists and is not empty
                 return response['SecurityGroups'][0]['GroupId']
     
-            global_logger.error(f"Security Group '{name}' not found")
+            self.logger.error(f"Security Group '{name}' not found")
             return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS SDK error while describing security groups: {e}")
+            self.logger.error(f"AWS SDK error while describing security groups: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
     
@@ -100,7 +97,7 @@ class EC2Service(BaseAWSService):
     
             security_group_id = values.get('security_group_id')
             if not security_group_id:
-                global_logger.error("Missing security_group_id in resource data")
+                self.logger.error("Missing security_group_id in resource data")
                 return None
     
             # Construct the main rule identifier string
@@ -112,7 +109,7 @@ class EC2Service(BaseAWSService):
             elif "source_security_group_id" in values and values['source_security_group_id']:
                 rule_identifier = f"{main_string}_{values['source_security_group_id']}"
             else:
-                global_logger.error("No valid source (CIDR block or source_security_group_id) found")
+                self.logger.error("No valid source (CIDR block or source_security_group_id) found")
                 return None
     
             # **Validation Step**: Check if the rule exists in AWS
@@ -126,19 +123,19 @@ class EC2Service(BaseAWSService):
                     if rule_identifier in str(rule):  # Convert rule to string for easier matching
                         return rule_identifier
     
-                global_logger.error(f"Security Group Rule '{rule_identifier}' not found in AWS")
+                self.logger.error(f"Security Group Rule '{rule_identifier}' not found in AWS")
                 return None
     
             except botocore.exceptions.ClientError as e:
-                global_logger.error(f"AWS ClientError while validating rule: {e}")
+                self.logger.error(f"AWS ClientError while validating rule: {e}")
                 return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -160,7 +157,7 @@ class EC2Service(BaseAWSService):
             asg_name = resource['change']['after'].get('name')
     
             if not asg_name:
-                global_logger.error("Missing 'name' in resource data")
+                self.logger.error("Missing 'name' in resource data")
                 return None
     
             # **Validation Step**: Check if the Auto Scaling Group exists in AWS
@@ -171,19 +168,19 @@ class EC2Service(BaseAWSService):
                 if response.get('AutoScalingGroups'):
                     return asg_name
     
-                global_logger.error(f"Auto Scaling Group '{asg_name}' not found in AWS")
+                self.logger.error(f"Auto Scaling Group '{asg_name}' not found in AWS")
                 return None
     
             except botocore.exceptions.ClientError as e:
-                global_logger.error(f"AWS ClientError while validating ASG: {e}")
+                self.logger.error(f"AWS ClientError while validating ASG: {e}")
                 return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -204,7 +201,7 @@ class EC2Service(BaseAWSService):
             key_name = resource['change']['after'].get('key_name')
     
             if not key_name:
-                global_logger.error("Missing 'key_name' in resource data")
+                self.logger.error("Missing 'key_name' in resource data")
                 return None
     
             # **Validation Step**: Check if the Key Pair exists in AWS
@@ -213,18 +210,18 @@ class EC2Service(BaseAWSService):
                 if response.get('KeyPairs'):
                     return key_name
     
-                global_logger.error(f"Key Pair '{key_name}' not found in AWS")
+                self.logger.error(f"Key Pair '{key_name}' not found in AWS")
                 return None
     
             except botocore.exceptions.ClientError as e:
-                global_logger.error(f"AWS ClientError while validating Key Pair: {e}")
+                self.logger.error(f"AWS ClientError while validating Key Pair: {e}")
                 return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None

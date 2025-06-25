@@ -5,16 +5,13 @@ import botocore
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class EC2Service(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("rds")
         self._resources = [
             "aws_db_instance",
@@ -36,20 +33,20 @@ class EC2Service(BaseAWSService):
         """
         db_identifier = resource['change']['after'].get('identifier')
         if not db_identifier:
-            global_logger.error("DB instance identifier is missing.")
+            self.logger.error("DB instance identifier is missing.")
             return None
         try:
             response = self.client.describe_db_instances(DBInstanceIdentifier=db_identifier)
             if response.get('DBInstances'):
                 return db_identifier
             else:
-                global_logger.error(f"DB instance '{db_identifier}' not found.")
+                self.logger.error(f"DB instance '{db_identifier}' not found.")
         except self.client.exceptions.DBInstanceNotFoundFault:
-            global_logger.error(f"DB instance '{db_identifier}' does not exist.")
+            self.logger.error(f"DB instance '{db_identifier}' does not exist.")
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"Error retrieving DB instance '{db_identifier}': {e}")
+            self.logger.error(f"Error retrieving DB instance '{db_identifier}': {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error while retrieving DB instance '{db_identifier}': {e}")
+            self.logger.error(f"Unexpected error while retrieving DB instance '{db_identifier}': {e}")
         return None
     
     def aws_db_subnet_group(self, resource):
@@ -58,20 +55,20 @@ class EC2Service(BaseAWSService):
         """
         subnet_group_name = resource['change']['after'].get('name')
         if not subnet_group_name:
-            global_logger.error("DB subnet group name is missing.")
+            self.logger.error("DB subnet group name is missing.")
             return None
         try:
             response = self.client.describe_db_subnet_groups(DBSubnetGroupName=subnet_group_name)
             if response.get('DBSubnetGroups'):
                 return subnet_group_name
             else:
-                global_logger.error(f"DB subnet group '{subnet_group_name}' not found.")
+                self.logger.error(f"DB subnet group '{subnet_group_name}' not found.")
         except self.client.exceptions.DBSubnetGroupNotFoundFault:
-            global_logger.error(f"DB subnet group '{subnet_group_name}' does not exist.")
+            self.logger.error(f"DB subnet group '{subnet_group_name}' does not exist.")
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"Error retrieving DB subnet group '{subnet_group_name}': {e}")
+            self.logger.error(f"Error retrieving DB subnet group '{subnet_group_name}': {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error while retrieving DB subnet group '{subnet_group_name}': {e}")
+            self.logger.error(f"Unexpected error while retrieving DB subnet group '{subnet_group_name}': {e}")
         return None
 
     #def aws_db_instance(self, resource):

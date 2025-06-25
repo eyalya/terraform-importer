@@ -15,6 +15,8 @@ def main():
         level=getattr(logging, args.log_level),
         format="%(asctime)s [%(levelname)s] %(message)s"
     )
+    logger = logging.getLogger(__name__)
+    logger.info("Application started")
 
     # Extract arguments
     terraform_config_path = args.config

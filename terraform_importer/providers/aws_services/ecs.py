@@ -5,16 +5,13 @@ import botocore.exceptions
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class ECSService(BaseAWSService):
     """
     Handles EC2-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("ecs")
         self.sd_client = self.get_client("servicediscovery")
         self._resources = [
@@ -53,7 +50,7 @@ class ECSService(BaseAWSService):
             cluster_name = resource['change']['after'].get('cluster')
     
             if not cluster_name or not service_name:
-                global_logger.error(f"Missing 'cluster'  in resource data: {resource['change']['after']}")
+                self.logger.error(f"Missing 'cluster'  in resource data: {resource['change']['after']}")
                 return None
     
             # **Validation Step**: Check if the ECS Service exists in AWS
@@ -66,19 +63,19 @@ class ECSService(BaseAWSService):
                 if response.get('services') and response['services'][0].get('status') != "INACTIVE":
                     return f"{cluster_name}/{service_name}"
     
-                global_logger.error(f"ECS Service '{service_name}' not found in cluster '{cluster_name}' or is INACTIVE")
+                self.logger.error(f"ECS Service '{service_name}' not found in cluster '{cluster_name}' or is INACTIVE")
                 return None
     
             except botocore.exceptions.ClientError as e:
-                global_logger.error(f"AWS ClientError while validating ECS Service: {e}")
+                self.logger.error(f"AWS ClientError while validating ECS Service: {e}")
                 return None
     
         except KeyError as e:
-            global_logger.error(f"Missing expected key in resource: {e}")
+            self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -90,7 +87,7 @@ class ECSService(BaseAWSService):
     #        # Extract and return the Task Definition ARN
     #        return  response['taskDefinition']['taskDefinitionArn']
     #    except self.client.exceptions.ClientException as e:
-    #        global_logger.error(f"Error retrieving task definition: {e}")
+    #        self.logger.error(f"Error retrieving task definition: {e}")
     #        return None
 
     def aws_ecs_task_definition(self, resource):
@@ -108,7 +105,7 @@ class ECSService(BaseAWSService):
             name = resource['change']['after'].get('family')
             
             if not name:
-                global_logger.error("Missing 'family' key in resource data.")
+                self.logger.error("Missing 'family' key in resource data.")
                 return None
     
             # **Validation Step**: Check if the ECS Task Definition exists
@@ -118,15 +115,15 @@ class ECSService(BaseAWSService):
     
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == 'ClientException' or "not found" in str(e):
-                    global_logger.error(f"ECS Task Definition '{name}' does not exist.")
+                    self.logger.error(f"ECS Task Definition '{name}' does not exist.")
                 else:
-                    global_logger.error(f"AWS ClientError while checking ECS Task Definition: {e}")
+                    self.logger.error(f"AWS ClientError while checking ECS Task Definition: {e}")
                 return None
     
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -146,7 +143,7 @@ class ECSService(BaseAWSService):
         cluster_name = resource['change']['after'].get('cluster_name')
     
         if not cluster_name:
-            global_logger.error("Cluster name is missing in the resource data.")
+            self.logger.error("Cluster name is missing in the resource data.")
             return None
     
         try:
@@ -157,15 +154,15 @@ class ECSService(BaseAWSService):
             if response['clusters']:
                 return cluster_name
             else:
-                global_logger.error(f"ECS Cluster '{cluster_name}' does not exist.")
+                self.logger.error(f"ECS Cluster '{cluster_name}' does not exist.")
                 return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating ECS Cluster: {e}")
+            self.logger.error(f"AWS ClientError while validating ECS Cluster: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -186,7 +183,7 @@ class ECSService(BaseAWSService):
     #                if service.get('Name') == service_name:
     #                    return service.get('Id')
     #    except KeyError as e:
-    #        global_logger.error("Keys not exist")
+    #        self.logger.error("Keys not exist")
     #    return None
 
     def aws_service_discovery_service(self, resource):
@@ -205,7 +202,7 @@ class ECSService(BaseAWSService):
             service_name = resource['change']['after'].get('name')
     
             if not namespace_id or not service_name:
-                global_logger.error("Missing required values: namespace_id or service_name.")
+                self.logger.error("Missing required values: namespace_id or service_name.")
                 return None
     
             # Use paginator to iterate through services in the given namespace
@@ -219,16 +216,16 @@ class ECSService(BaseAWSService):
                         return service.get('Id')
     
             # If no match is found
-            global_logger.error(f"Service Discovery service '{service_name}' not found in namespace '{namespace_id}'.")
+            self.logger.error(f"Service Discovery service '{service_name}' not found in namespace '{namespace_id}'.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating Service Discovery service: {e}")
+            self.logger.error(f"AWS ClientError while validating Service Discovery service: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None

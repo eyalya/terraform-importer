@@ -5,16 +5,13 @@ import botocore
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class VPCService(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.client = self.get_client("ec2")
         self._resources = [
             "aws_subnet",
@@ -46,7 +43,7 @@ class VPCService(BaseAWSService):
             name_tag = values.get('tags', {}).get('Name')
     
             if not name_tag:
-                global_logger.error("Missing 'Name' tag in route table resource.")
+                self.logger.error("Missing 'Name' tag in route table resource.")
                 return None
     
             response = self.client.describe_route_tables(
@@ -58,10 +55,10 @@ class VPCService(BaseAWSService):
             for route_table in response.get('RouteTables', []):
                 return route_table['RouteTableId']
     
-            global_logger.error(f"No route table found with Name tag: {name_tag}")
+            self.logger.error(f"No route table found with Name tag: {name_tag}")
     
         except Exception as e:
-            global_logger.error(f"Error retrieving route table: {e}")
+            self.logger.error(f"Error retrieving route table: {e}")
     
         return None
     
@@ -74,7 +71,7 @@ class VPCService(BaseAWSService):
         subnet_id = values.get('subnet_id')
     
         if not route_table_id or not subnet_id:
-            global_logger.error("Route table ID or subnet ID is missing.")
+            self.logger.error("Route table ID or subnet ID is missing.")
             return None
     
         try:
@@ -83,9 +80,9 @@ class VPCService(BaseAWSService):
                 for assoc in route_table.get('Associations', []):
                     if assoc.get('SubnetId') == subnet_id:
                         return f"{subnet_id}/{route_table_id}"
-            global_logger.error(f"No association found for subnet '{subnet_id}' with route table '{route_table_id}'.")
+            self.logger.error(f"No association found for subnet '{subnet_id}' with route table '{route_table_id}'.")
         except Exception as e:
-            global_logger.error(f"Error checking route table association: {e}")
+            self.logger.error(f"Error checking route table association: {e}")
         return None
     
     #def aws_subnet(self, resource):

@@ -6,10 +6,6 @@ from terraform_importer.providers.bitbucket_provider import BitbucketDfraustProv
 from terraform_importer.handlers.json_config_handler import JsonConfigHandler
 import logging
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class ProvidersHandler:
     """Handles interaction with all providers."""
 
@@ -30,6 +26,7 @@ class ProvidersHandler:
         #stript_config = JsonConfigHandler.simplify_references(stript_config)
         #stript_config = JsonConfigHandler.simplify_constant_values(stript_config)
         stript_config = JsonConfigHandler.edit_provider_config(provider_config)
+        self.logger = logging.getLogger(__name__)
         self.providers = self.init_providers(stript_config)
         # self.validate_providers()
     
@@ -49,7 +46,7 @@ class ProvidersHandler:
                 provider_class = self.providers_full_names[provider_full_name]
                 providers[provider_name] = provider_class(provider_data, provider_name)
             else:
-                global_logger.warning(f"Unhandled provider type: {provider_full_name}")
+                self.logger.warning(f"Unhandled provider type: {provider_full_name}")
                 providers[provider_name] = None
         return providers
 
@@ -95,6 +92,6 @@ class ProvidersHandler:
                 if id:
                     return {"address": address, "id": id}
         except KeyError:
-            global_logger.warning(f"Provider type {provider_name} doesnt exist")
+            self.logger.warning(f"Provider type {provider_name} doesnt exist")
         return None
         

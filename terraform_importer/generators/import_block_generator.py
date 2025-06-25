@@ -30,8 +30,7 @@ class ImportBlockGenerator:
         """
         self._tf_handler = tf_handler
         self._provider_handler = None
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger = logging.getLogger(__name__)
 
     def run_terraform(self, targets: Optional[List[str]] = None) -> Dict[str, list]:
         """

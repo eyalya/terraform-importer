@@ -5,16 +5,13 @@ import botocore.exceptions
 import logging
 from terraform_importer.providers.aws_services.base import BaseAWSService
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 class GENERALService(BaseAWSService):
     """
     Handles ECS-related resources (e.g., instances, AMIs).
     """
     def __init__(self, session: boto3.Session):
         super().__init__(session)
+        self.logger = logging.getLogger(__name__)
         self.sqs_client = self.get_client("sqs")
         self.sns_client = self.get_client("sns")
         self.acm_client = self.get_client("acm")
@@ -62,7 +59,7 @@ class GENERALService(BaseAWSService):
             repository_name = resource['change']['after'].get('name')
     
             if not repository_name:
-                global_logger.error("ECR repository name is missing in the resource data.")
+                self.logger.error("ECR repository name is missing in the resource data.")
                 return None
     
             # Check if the repository exists
@@ -72,20 +69,20 @@ class GENERALService(BaseAWSService):
             if response.get('repositories'):
                 return repository_name
     
-            global_logger.error(f"ECR repository '{repository_name}' not found.")
+            self.logger.error(f"ECR repository '{repository_name}' not found.")
             return None
     
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'RepositoryNotFoundException':
-                global_logger.error(f"ECR repository '{repository_name}' does not exist.")
+                self.logger.error(f"ECR repository '{repository_name}' does not exist.")
             else:
-                global_logger.error(f"AWS ClientError while validating ECR repository: {e}")
+                self.logger.error(f"AWS ClientError while validating ECR repository: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
     
@@ -96,10 +93,10 @@ class GENERALService(BaseAWSService):
     #        response = self.sqs_client.get_queue_url(QueueName=name)
     #        return response['QueueUrl']
     #    except self.sqs_client.exceptions.QueueDoesNotExist:
-    #        global_logger.INFO(f"The SQS queue '{name}' does not exist.")
+    #        self.logger.INFO(f"The SQS queue '{name}' does not exist.")
     #        return None
     #    except Exception as e:
-    #        global_logger.error(f"An error occurred: {e}")
+    #        self.logger.error(f"An error occurred: {e}")
     #        return None
 
     def aws_sqs_queue(self, resource):
@@ -117,7 +114,7 @@ class GENERALService(BaseAWSService):
             name = resource['change']['after'].get('name')
     
             if not name:
-                global_logger.error("SQS queue name is missing in the resource data.")
+                self.logger.error("SQS queue name is missing in the resource data.")
                 return None
     
             # Check if the queue exists
@@ -127,19 +124,19 @@ class GENERALService(BaseAWSService):
             if queue_url:
                 return queue_url
     
-            global_logger.error(f"SQS queue '{name}' not found.")
+            self.logger.error(f"SQS queue '{name}' not found.")
             return None
     
         except self.sqs_client.exceptions.QueueDoesNotExist:
-            global_logger.info(f"The SQS queue '{name}' does not exist.")
+            self.logger.info(f"The SQS queue '{name}' does not exist.")
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating SQS queue: {e}")
+            self.logger.error(f"AWS ClientError while validating SQS queue: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -156,10 +153,10 @@ class GENERALService(BaseAWSService):
     #                if name == topic_arn.split(':')[-1]:
     #                    return topic_arn
     #
-    #        global_logger.error(f"The SNS topic '{name}' does not exist.")
+    #        self.logger.error(f"The SNS topic '{name}' does not exist.")
     #        return None
     #    except Exception as e:
-    #        global_logger.error(f"An error occurred: {e}")
+    #        self.logger.error(f"An error occurred: {e}")
     #        return None
 
     def aws_sns_topic(self, resource):
@@ -177,7 +174,7 @@ class GENERALService(BaseAWSService):
             name = resource['change']['after'].get('name')
     
             if not name:
-                global_logger.error("SNS topic name is missing in the resource data.")
+                self.logger.error("SNS topic name is missing in the resource data.")
                 return None
     
             # List all SNS topics using pagination
@@ -193,17 +190,17 @@ class GENERALService(BaseAWSService):
                     if name == topic_arn.split(':')[-1]:
                         return topic_arn
     
-            global_logger.error(f"The SNS topic '{name}' does not exist.")
+            self.logger.error(f"The SNS topic '{name}' does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating SNS topic: {e}")
+            self.logger.error(f"AWS ClientError while validating SNS topic: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -230,7 +227,7 @@ class GENERALService(BaseAWSService):
             record_type = resource['change']['after'].get('type')
     
             if not all([zone_id, name, record_type]):
-                global_logger.error("Missing required Route 53 record attributes in resource data.")
+                self.logger.error("Missing required Route 53 record attributes in resource data.")
                 return None
     
             # List all records in the hosted zone
@@ -240,17 +237,17 @@ class GENERALService(BaseAWSService):
                     if record.get('Name') == name and record.get('Type') == record_type:
                         return f"{zone_id}_{name}_{record_type}"
     
-            global_logger.error(f"Route 53 record '{name}' of type '{record_type}' does not exist in zone '{zone_id}'.")
+            self.logger.error(f"Route 53 record '{name}' of type '{record_type}' does not exist in zone '{zone_id}'.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating Route 53 record: {e}")
+            self.logger.error(f"AWS ClientError while validating Route 53 record: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -279,7 +276,7 @@ class GENERALService(BaseAWSService):
             domain_name = resource['change']['after'].get('domain_name')
             
             if not domain_name:
-                global_logger.error("Missing required attribute: 'domain_name'.")
+                self.logger.error("Missing required attribute: 'domain_name'.")
                 return None
     
             # List ACM certificates
@@ -289,17 +286,17 @@ class GENERALService(BaseAWSService):
                     if cert.get('DomainName') == domain_name:
                         return cert.get('CertificateArn')
     
-            global_logger.error(f"ACM certificate for domain '{domain_name}' does not exist or is not issued.")
+            self.logger.error(f"ACM certificate for domain '{domain_name}' does not exist or is not issued.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating ACM certificate: {e}")
+            self.logger.error(f"AWS ClientError while validating ACM certificate: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -321,7 +318,7 @@ class GENERALService(BaseAWSService):
             app_name = resource['change']['after'].get('name')
     
             if not app_name:
-                global_logger.error("Missing required attribute: 'name'.")
+                self.logger.error("Missing required attribute: 'name'.")
                 return None
     
             # Describe applications to check if it exists
@@ -330,17 +327,17 @@ class GENERALService(BaseAWSService):
             if response.get('Applications'):
                 return app_name
     
-            global_logger.error(f"Elastic Beanstalk application '{app_name}' does not exist.")
+            self.logger.error(f"Elastic Beanstalk application '{app_name}' does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating Elastic Beanstalk application: {e}")
+            self.logger.error(f"AWS ClientError while validating Elastic Beanstalk application: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -362,7 +359,7 @@ class GENERALService(BaseAWSService):
             cluster_id = resource['change']['after'].get('cluster_id')
      
             if not cluster_id:
-                global_logger.error("Missing required attribute: 'cluster_id'.")
+                self.logger.error("Missing required attribute: 'cluster_id'.")
                 return None
      
             # Describe ElastiCache clusters to check if the cluster exists
@@ -374,17 +371,17 @@ class GENERALService(BaseAWSService):
             if response.get('CacheClusters'):
                 return cluster_id
      
-            global_logger.error(f"ElastiCache cluster '{cluster_id}' does not exist.")
+            self.logger.error(f"ElastiCache cluster '{cluster_id}' does not exist.")
             return None
      
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating ElastiCache cluster: {e}")
+            self.logger.error(f"AWS ClientError while validating ElastiCache cluster: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
      
         return None
 
@@ -406,7 +403,7 @@ class GENERALService(BaseAWSService):
             subnet_group_name = resource['change']['after'].get('name')
     
             if not subnet_group_name:
-                global_logger.error("Missing required attribute: 'name'.")
+                self.logger.error("Missing required attribute: 'name'.")
                 return None
     
             # Describe subnet groups to check if the subnet group exists
@@ -417,17 +414,17 @@ class GENERALService(BaseAWSService):
             if response.get('CacheSubnetGroups'):
                 return subnet_group_name
     
-            global_logger.error(f"ElastiCache Subnet Group '{subnet_group_name}' does not exist.")
+            self.logger.error(f"ElastiCache Subnet Group '{subnet_group_name}' does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating ElastiCache Subnet Group: {e}")
+            self.logger.error(f"AWS ClientError while validating ElastiCache Subnet Group: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
     
@@ -449,7 +446,7 @@ class GENERALService(BaseAWSService):
             project_name = resource['change']['after'].get('name')
     
             if not project_name:
-                global_logger.error("Missing required attribute: 'name'.")
+                self.logger.error("Missing required attribute: 'name'.")
                 return None
     
             # Describe the CodeBuild project to check if it exists
@@ -460,17 +457,17 @@ class GENERALService(BaseAWSService):
             if response.get('projects'):
                 return project_name
     
-            global_logger.error(f"CodeBuild project '{project_name}' does not exist.")
+            self.logger.error(f"CodeBuild project '{project_name}' does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating CodeBuild project: {e}")
+            self.logger.error(f"AWS ClientError while validating CodeBuild project: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -509,7 +506,7 @@ class GENERALService(BaseAWSService):
             aliases = resource['change']['after'].get('aliases')
     
             if not aliases:
-                global_logger.error("No aliases provided in the resource.")
+                self.logger.error("No aliases provided in the resource.")
                 return None
     
             # Use paginator to handle large number of distributions
@@ -527,17 +524,17 @@ class GENERALService(BaseAWSService):
                         return distribution['Id']
     
             # If no matching distribution is found
-            global_logger.error(f"CloudFront distribution with aliases {aliases} does not exist.")
+            self.logger.error(f"CloudFront distribution with aliases {aliases} does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating CloudFront distribution: {e}")
+            self.logger.error(f"AWS ClientError while validating CloudFront distribution: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 
@@ -570,7 +567,7 @@ class GENERALService(BaseAWSService):
             server_type = resource['change']['after'].get('server_type')
     
             if not auth_type or not server_type:
-                global_logger.error("Missing 'auth_type' or 'server_type' in the resource.")
+                self.logger.error("Missing 'auth_type' or 'server_type' in the resource.")
                 return None
     
             # Use the AWS CodeBuild client to list source credentials
@@ -582,17 +579,17 @@ class GENERALService(BaseAWSService):
                     return credential['arn']
     
             # Log if the credential doesn't exist
-            global_logger.error(f"CodeBuild source credential with auth_type: {auth_type} and server_type: {server_type} does not exist.")
+            self.logger.error(f"CodeBuild source credential with auth_type: {auth_type} and server_type: {server_type} does not exist.")
             return None
     
         except botocore.exceptions.ClientError as e:
-            global_logger.error(f"AWS ClientError while validating CodeBuild source credential: {e}")
+            self.logger.error(f"AWS ClientError while validating CodeBuild source credential: {e}")
         except botocore.exceptions.BotoCoreError as e:
-            global_logger.error(f"AWS BotoCoreError: {e}")
+            self.logger.error(f"AWS BotoCoreError: {e}")
         except KeyError as e:
-            global_logger.error(f"Missing key in resource data: {e}")
+            self.logger.error(f"Missing key in resource data: {e}")
         except Exception as e:
-            global_logger.error(f"Unexpected error occurred: {e}")
+            self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
 

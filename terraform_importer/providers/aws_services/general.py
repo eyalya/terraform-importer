@@ -41,9 +41,6 @@ class GENERALService(BaseAWSService):
         return self._resources.copy()
 
 
-    #def aws_ecr_repository(self, resource):
-    #    return resource['change']['after']['name']
-
     def aws_ecr_repository(self, resource):
         """
         Validates if the AWS ECR repository exists and returns its name.
@@ -86,18 +83,6 @@ class GENERALService(BaseAWSService):
     
         return None
     
-    #def aws_sqs_queue(self, resource):
-    #    name = resource['change']['after']['name']
-    #    try:
-    #        # Get the queue URL
-    #        response = self.sqs_client.get_queue_url(QueueName=name)
-    #        return response['QueueUrl']
-    #    except self.sqs_client.exceptions.QueueDoesNotExist:
-    #        self.logger.INFO(f"The SQS queue '{name}' does not exist.")
-    #        return None
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred: {e}")
-    #        return None
 
     def aws_sqs_queue(self, resource):
         """
@@ -141,24 +126,6 @@ class GENERALService(BaseAWSService):
         return None
 
     
-    #def aws_sns_topic(self, resource):
-    #    name = resource['change']['after']['name']
-    #    try:
-    #        # List all SNS topics
-    #        paginator = self.sns_client.get_paginator('list_topics')
-    #        for page in paginator.paginate():
-    #            for topic in page['Topics']:
-    #                topic_arn = topic['TopicArn']
-    #                # Extract the topic name from the ARN
-    #                if name == topic_arn.split(':')[-1]:
-    #                    return topic_arn
-    #
-    #        self.logger.error(f"The SNS topic '{name}' does not exist.")
-    #        return None
-    #    except Exception as e:
-    #        self.logger.error(f"An error occurred: {e}")
-    #        return None
-
     def aws_sns_topic(self, resource):
         """
         Validates if the AWS SNS topic exists and returns its ARN.
@@ -204,11 +171,6 @@ class GENERALService(BaseAWSService):
     
         return None
 
-    #def aws_route53_record(self, resource):
-    #    zone_id = f"{resource['change']['after']['zone_id']}"
-    #    name = f"{resource['change']['after']['name']}"
-    #    type = f"{resource['change']['after']['type']}"
-    #    return  f"{zone_id}_{name}_{type}"
 
     def aws_route53_record(self, resource):
         """
@@ -251,15 +213,6 @@ class GENERALService(BaseAWSService):
     
         return None
 
-    #def aws_acm_certificate(self,resource):  #TODO: need check
-    #    domain_name = resource['change']['after']['domain_name']
-    #    certificates = self.acm_client.list_certificates(CertificateStatuses=['ISSUED'])
-#
-    #    for cert in certificates['CertificateSummaryList']:
-    #        if domain_name:
-    #            if cert['DomainName'] == domain_name:
-    #                return cert['CertificateArn']
-    #        return None
 
     def aws_acm_certificate(self, resource):
         """
@@ -300,9 +253,6 @@ class GENERALService(BaseAWSService):
     
         return None
 
-    #def aws_elastic_beanstalk_application(self, resource):
-    #    return resource['change']['after']['name']
-
     def aws_elastic_beanstalk_application(self, resource):
         """
         Validates if the AWS Elastic Beanstalk application exists and returns its name.
@@ -341,8 +291,6 @@ class GENERALService(BaseAWSService):
     
         return None
 
-    #def aws_elasticache_cluster(self, resource):
-    #    return resource['change']['after']['cluster_id']
 
     def aws_elasticache_cluster(self, resource):
         """
@@ -385,8 +333,6 @@ class GENERALService(BaseAWSService):
      
         return None
 
-    #def aws_elasticache_subnet_group(self, resource):
-    #    return resource['change']['after']['name']
 
     def aws_elasticache_subnet_group(self, resource):
         """
@@ -428,9 +374,6 @@ class GENERALService(BaseAWSService):
     
         return None
     
-    #def aws_codebuild_project(self, resource):
-    #    return resource['change']['after']['name']
-
     def aws_codebuild_project(self, resource):
         """
         Validates if the AWS CodeBuild project exists and returns its name.
@@ -538,16 +481,6 @@ class GENERALService(BaseAWSService):
     
         return None
 
-    #def aws_codebuild_source_credential(self,resource):
-#
-    #    auth_type   = resource['change']['after']['auth_type']
-    #    server_type = resource['change']['after']['server_type']
-#
-    #    response = self.codebuild_client.list_source_credentials()
-    #    for credential in response.get('sourceCredentialsInfos', []):
-    #        if credential['authType'] == auth_type and credential['serverType'] == server_type:
-    #            return credential['arn']
-    #    return None
 
     def aws_codebuild_source_credential(self, resource):
         """

@@ -121,26 +121,3 @@ class IAMService(BaseAWSService):
         except self.client.exceptions.NoSuchEntityException:
             self.logger.error(f"IAM instance profile '{profile_name}' does not exist.")
         return None
-#
-    #def aws_iam_role(self, resource):
-    #    return resource['change']['after']['name']
-#
-    #def aws_iam_policy(self, resource):
-    #    return f"arn:aws:iam::891513744586:policy/{resource['change']['after']['name']}"
-    #
-    #def aws_iam_role_policy(self, resource):
-    #    role_name = resource['change']['after']['role']
-    #    name = resource['change']['after']['name']
-    #    return f"{role_name}:{name}"
-    #
-    #def aws_iam_role_policy_attachment(self, resource):
-    #    return f"{resource['change']['after']['role']}/{resource['change']['after']['policy_arn']}"
-    #
-    #def aws_iam_user(self, resource):
-    #    return resource['change']['after']['name']
-#
-    #def aws_iam_group(self, resource):
-    #    return f"{resource['change']['after']['name']}"
-#
-    #def aws_iam_instance_profile(self, resource):
-    #    return resource['change']['after']['name']

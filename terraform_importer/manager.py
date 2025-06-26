@@ -13,11 +13,8 @@ class Manager:
             terraform_config_path (str): Path to Terraform configurations.
             output_path (str): Path to save the import file.
         """
-        #self.providers_handler = ProvidersHandler(providers)
         self.tf_handler = TerraformHandler(terraform_config_path, options)
         self.import_block_generator = ImportBlockGenerator(self.tf_handler)
-        # self.importer = Importer()
-        #self.output_path = output_path
         self.targets = targets
     def run(self) -> None:
         """

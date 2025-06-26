@@ -85,25 +85,3 @@ class VPCService(BaseAWSService):
             self.logger.error(f"Error checking route table association: {e}")
         return None
     
-    #def aws_subnet(self, resource):
-    #    name = resource['change']['after']['tags']['Name']
-    #    response = self.client.describe_subnets(Filters=[{'Name': 'tag:Name', 'Values': [name]}])
-    #    for subnet in response['Subnets']:
-    #        # print (json.dumps(subnet, indent=4, sort_keys=True, default=str)) 
-    #        return subnet['SubnetId']
-    #    return None
-#
-    #def aws_route_table(self, resource_name, vpc_id):
-    #    response = self.client.describe_route_tables(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}, {'Name': 'tag:Name', 'Values': [resource_name]}])
-    #    for route_table in response['RouteTables']:
-    #        return route_table['RouteTableId']
-    #    return None
-#
-    #def aws_route_table_association(self, resource):
-    #    values = resource['change']['after']
-    #    route_table_id = values['route_table_id']
-    #    if "subnet_id" in values and values['subnet_id'] is not None:
-    #        # Handle rule with CIDR block
-    #        rule = f"{values['subnet_id']}/{route_table_id}"
-    #        return rule
-    #    return None

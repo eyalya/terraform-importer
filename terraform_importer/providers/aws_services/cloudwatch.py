@@ -71,15 +71,6 @@ class CloudWatchService(BaseAWSService):
             self.logger.error(f"Failed to validate CloudWatch Event Target: {e}")
             return None
 
-    #def aws_cloudwatch_log_group(self, resource):
-    #    try:
-    #        return resource['change']['after']['name']
-    #    except Exception as e:
-    #        self.logger.error(f"cloudwatch_event_target: An error occurred: {e}")
-    #        return None
-
-    #def aws_cloudwatch_metric_alarm(self, resource):
-    #    return f"{resource['change']['after']['alarm_name']}"
 
     def aws_cloudwatch_log_group(self, resource):
         """
@@ -154,11 +145,6 @@ class CloudWatchService(BaseAWSService):
             self.logger.error(f"An unexpected error occurred: {e}")
     
         return None
-
-    #def aws_cloudwatch_log_metric_filter(self, resource):
-    #    name = f"{resource['change']['after']['name']}"
-    #    log_group_name = f"{resource['change']['after']['log_group_name']}"
-    #    return  f"{log_group_name}:{name}"    
 
     def aws_cloudwatch_log_metric_filter(self, resource):
         """

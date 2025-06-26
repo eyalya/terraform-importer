@@ -70,9 +70,3 @@ class EC2Service(BaseAWSService):
         except Exception as e:
             self.logger.error(f"Unexpected error while retrieving DB subnet group '{subnet_group_name}': {e}")
         return None
-
-    #def aws_db_instance(self, resource):
-    #    return f"{resource['change']['after']['identifier']}"
-#
-    #def aws_db_subnet_group(self, resource):
-    #     return f"{resource['change']['after']['name']}"

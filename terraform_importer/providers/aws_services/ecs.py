@@ -30,11 +30,7 @@ class ECSService(BaseAWSService):
         # Return a copy to prevent external modification
         return self._resources.copy()
     
-        
-    #def aws_ecs_service(self, resource):
-    #    name = resource['change']['after']['name']
-    #    return f"development/{name}"
-
+    
     def aws_ecs_service(self, resource):
         """
         Retrieves the AWS ECS Service name after validating its existence.
@@ -79,16 +75,6 @@ class ECSService(BaseAWSService):
     
         return None
 
-    #def aws_ecs_task_definition(self, resource):
-    #    name = resource['change']['after']['family']
-    #    try:
-    #        # Describe the task definition
-    #        response = self.client.describe_task_definition(taskDefinition=name)
-    #        # Extract and return the Task Definition ARN
-    #        return  response['taskDefinition']['taskDefinitionArn']
-    #    except self.client.exceptions.ClientException as e:
-    #        self.logger.error(f"Error retrieving task definition: {e}")
-    #        return None
 
     def aws_ecs_task_definition(self, resource):
         """
@@ -127,8 +113,6 @@ class ECSService(BaseAWSService):
     
         return None
 
-    #def aws_ecs_cluster_capacity_providers(self, resource):
-    #    return f"{resource['change']['after']['cluster_name']}"
 
     def aws_ecs_cluster_capacity_providers(self, resource):
         """
@@ -165,26 +149,6 @@ class ECSService(BaseAWSService):
             self.logger.error(f"Unexpected error occurred: {e}")
     
         return None
-
-    #def aws_service_discovery_service(self, resource):
-    #    # Use pagination in case you have many services
-    #    try:
-    #        paginator = self.sd_client.get_paginator('list_services')
-    #        namespace_id = resource['change']['after']['dns_config'][0]['namespace_id']
-    #        service_name = resource['change']['after']['name']
-    #        for page in paginator.paginate(Filters=[
-    #            {
-    #                'Name': 'NAMESPACE_ID',
-    #                'Values': [namespace_id],
-    #                'Condition': 'EQ'
-    #            }
-    #        ]):
-    #            for service in page.get('Services', []):
-    #                if service.get('Name') == service_name:
-    #                    return service.get('Id')
-    #    except KeyError as e:
-    #        self.logger.error("Keys not exist")
-    #    return None
 
     def aws_service_discovery_service(self, resource):
         """

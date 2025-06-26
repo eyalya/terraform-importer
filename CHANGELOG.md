@@ -6,10 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- None
+
+### Changed
+- None
+
+### Deprecated
+- None
+
+### Removed
+- None
+
+### Fixed
+- None
+
+### Security
+- None
+
+## [1.0.0] - 2025-06-26
+### Added
 - Initial project structure
 - Basic AWS resource import functionality
 - Command-line interface for resource importing
 - Documentation setup
+- Use providers authentication from terraform configuration
 
 ### Changed
 - None
@@ -34,5 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AWS provider support
 - Basic CLI interface
 
-[Unreleased]: https://github.com/eyalya/terraform-importer/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/eyalya/terraform-importer/releases/tag/v0.1.0 
+[Unreleased]: https://github.com/eyalya/terraform-importer/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/eyalya/terraform-importer/releases/tag/v1.0.0
+[0.1.0]: https://github.com/eyalya/terraform-importer/releases/tag/v0.1.0

@@ -77,35 +77,4 @@ class LoadBalancerService(BaseAWSService):
         
             return None
 
-    #def aws_lb_target_group(self, resource):
-    #    name = resource['change']['after']['name']
-    #    try:
-    #        # List all target groups
-    #        paginator = self.client.get_paginator('describe_target_groups')
-    #        for page in paginator.paginate():
-    #            for target_group in page['TargetGroups']:
-    #                if target_group['TargetGroupName'] == name:
-    #                    return target_group['TargetGroupArn']
-    #    except self.client.exceptions.ClientError as e:
-    #        self.logger.error(f"Error retrieving target group: {e}")
-    #    return None  # Return None if no target group is found with the given name
-#
-    #def aws_lb_listener(self, resource):
-    #    try:
-    #        lb_arn = resource['change']['after']['load_balancer_arn']
-    #        port = resource['change']['after']['port']
-    #        protocol = resource['change']['after']['protocol']
-    #        # Step 3: Get listeners for each load balancer
-    #        listeners = self.client.describe_listeners(LoadBalancerArn=lb_arn)
-#
-    #        # Step 4: Check each listener for port, protocol, and target group ARN
-    #        for listener in listeners['Listeners']:
-    #            if listener['Port'] == port and listener['Protocol'] == protocol:
-    #                return listener['ListenerArn']
-    #        else:
-    #            self.logger.warn("lb listner: No matching listener found")
-    #    except KeyError as e:
-    #        self.logger.warn("lb listner: Not enough information")
-    #    return None  # Return None if no matching listener found
-
-    #def aws_lb_listener_rule(self,resource):
+    

@@ -5,7 +5,7 @@ import logging
 class AWSAuthHandler:
     def __init__(self, auth_config: dict): 
         self.auth_config = auth_config
-        self.logger = logging.getLogger("AWSAuthHandler")
+        self.logger = logging.getLogger(__name__)
         self.profile = None
         self.role_arn = None
         self.region = None

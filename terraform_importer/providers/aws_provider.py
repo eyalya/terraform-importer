@@ -1,35 +1,33 @@
 from terraform_importer.providers.base_provider import BaseProvider
 from typing import List, Optional, Dict
 from terraform_importer.providers.aws_services.base import BaseAWSService
+from terraform_importer.providers.aws_services.aws_auth import AWSAuthHandler
 import os
 import importlib.util
 import logging
 import inspect
 import boto3
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 # AWS Provider
 class AWSProvider(BaseProvider):
     """AWS-specific implementation of the BaseProvider."""
 
-    def __init__(self):
+    def __init__(self, auth_config: Dict, provider_name: str = "aws"):
         super().__init__()
-        # TODO: Change to auth config
-        self.__name__ = "aws"
-        self.session = boto3.session.Session(profile_name='dev1')
-        
-        self._resources_dict = {}
 
+        self.auth_handler = AWSAuthHandler(auth_config)
+        self.__name__ = provider_name
+        self._sessions = self.auth_handler.get_session()
+        self._resources_dict = {}
+        self.logger = logging.getLogger(__name__)
+        
         # Discover and instantiate all subclasses of BaseAWSService
         service_classes = self.get_aws_service_subclasses(BaseAWSService, "terraform_importer/providers/aws_services")
         for service_class in service_classes:
             # Instantiate the service
-            service_instance = service_class(self.session)
+            service_instance = service_class(self._sessions)
             self.add_to_resource_dict(service_instance)
-        
+
     def add_to_resource_dict(self, service: BaseAWSService):
         """
         Updates the resource dictionary with resources from a service.
@@ -73,7 +71,6 @@ class AWSProvider(BaseProvider):
         try: 
             id = self._resources_dict[resource_type].get_id(resource_type, resource_block)
         except KeyError:
-            global_logger.warning(f"resource type {resource_type} doesnt exist")
+            self.logger.warning(f"resource type {resource_type} doesnt exist")
             return None
         return id
-

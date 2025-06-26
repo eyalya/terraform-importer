@@ -2,8 +2,10 @@ from typing import List, Optional, Dict
 from terraform_importer.handlers.terraform_handler import TerraformHandler
 from terraform_importer.handlers.providers_handler import ProvidersHandler
 import os
+import json
 import logging
-
+import re
+from terraform_importer.handlers.json_config_handler import JsonConfigHandler
 
 class ImportBlockGenerator:
     """Generates Terraform import blocks.
@@ -18,7 +20,7 @@ class ImportBlockGenerator:
         _provider_handler (ProvidersHandler): Handler for provider-specific resource actions.
     """
     
-    def __init__(self, tf_handler: TerraformHandler, provider_handler: ProvidersHandler):
+    def __init__(self, tf_handler: TerraformHandler):
         """
         Initializes the ImportBlockGenerator with Terraform and Provider handlers.
         
@@ -27,10 +29,42 @@ class ImportBlockGenerator:
             provider_handler (ProvidersHandler): An instance of ProvidersHandler for provider resource handling.
         """
         self._tf_handler = tf_handler
-        self._provider_handler = provider_handler
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
+        self._provider_handler = None
+        self.logger = logging.getLogger(__name__)
 
+    def run_terraform(self, targets: Optional[List[str]] = None) -> Dict[str, list]:
+        """
+        Executes Terraform plan and show commands to extract resource information.
+
+        Args:
+            targets (Optional[List[str]]): A list of Terraform resource targets to limit the scope
+                                         of the plan and show commands. If None, all resources
+                                         will be included.
+
+        Returns:
+            Dict[str, list]: A dictionary containing the parsed output from Terraform show,
+                            including resource changes and configuration details.
+
+        Note:
+            This method first runs 'terraform plan' to generate the plan file, then
+            'terraform show' to extract detailed resource information from that plan.
+        """
+        # Run Terraform plan and show to extract resource information
+        self.logger.info("Running Terraform plan...")
+        self._tf_handler.run_terraform_plan(targets)
+        if targets is not None:
+            targets=[t.replace("-target=module.", "") for t in targets]
+        self.logger.info("Running Terraform show...")
+        return self._tf_handler.run_terraform_show(targets)
+        
+    
+    def load_resource_list_from_file(self, file_path: str) -> Dict[str, list]:
+        """
+        Loads a resource list from a file.
+        """
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    
     def extract_resource_list(self, targets: Optional[List[str]] = None) -> Dict[str, list]:
         """
         Extracts a list of resources from Terraform plan and show, generates import blocks, 
@@ -42,23 +76,21 @@ class ImportBlockGenerator:
         Returns:
             Dict[str, list]: A dictionary containing resource details.
         """
-        targets = targets or []
+        targets     = targets or []
         self.logger.info(f"Starting resource extraction for targets: {targets}")
         
         try:
             # Run Terraform plan and show to extract resource information
-            self.logger.info("Running Terraform plan...")
-            self._tf_handler.run_terraform_plan(targets)
+            resource_list = self.run_terraform(targets)
             
-            self.logger.info("Running Terraform show...")
-            resource_list = self._tf_handler.run_terraform_show(targets)
+            self._provider_handler = ProvidersHandler(resource_list)
             
             # Generate import blocks from the resource list
             self.logger.info("Generating import blocks...")
             import_blocks = self.generate_imports_from_plan(resource_list)
             
             # Determine output file path
-            output_file = os.path.join(self._tf_handler.get_terraform_folder(), "import.tf")
+            output_file = os.path.join(self._tf_handler.get_terraform_folder(), f"import-{targets}.tf")
             self.logger.info(f"Saving import blocks to {output_file}")
             
             # Create the import file
@@ -68,6 +100,27 @@ class ImportBlockGenerator:
         except Exception as e:
             self.logger.error(f"Failed to extract resource list: {e}")
             raise
+
+    def _get_provider_for_resource(self, resource: Dict, address_to_provider_dict: Dict) -> Optional[str]:
+        """
+        Extracts the provider configuration key for a given resource.
+
+        Args:
+            resource (Dict): The resource to find the provider for
+            address_to_provider_dict (Dict): A dictionary mapping resource addresses to their provider config keys
+
+        Returns:
+            Optional[str]: The provider config key if found, None otherwise
+        """
+        
+        address = re.sub(r'\[\d+\]|\["[^"]+"\]', '', resource['address'])
+        try:
+            provider = address_to_provider_dict.get(address)
+            self.logger.debug(f"Found provider {provider} for resource {address}")
+            return provider
+        except Exception as e:
+            self.logger.error(f"Failed to get provider for resource {address}: {e}")
+            return None
 
     def generate_imports_from_plan(self, resource_list: Dict) -> List[Dict[str, str]]:
         """
@@ -82,12 +135,23 @@ class ImportBlockGenerator:
         self.logger.info("Filtering resources for 'create' actions.")
         import_blocks = []
 
+        provider_dict = resource_list["configuration"]["root_module"]
+        address_to_provider_dict = JsonConfigHandler.extract_provider_config_keys(provider_dict)
+
         # Extract resource changes
         for resource in resource_list.get('resource_changes', []):
+            
             actions = resource['change']['actions']
             if "create" not in actions:
                 self.logger.debug(f"Skipping resource {resource['address']} with actions: {actions}")
                 continue
+            
+            provider = self._get_provider_for_resource(resource, address_to_provider_dict)
+            if not provider:
+                continue
+            
+            resource["provider"] = provider
+            
             import_blocks.append(resource)
         
         self.logger.info(f"Filtered {len(import_blocks)} resources for import.")

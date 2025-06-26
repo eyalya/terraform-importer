@@ -2,10 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
 import logging
 
-# Define a global logger
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-global_logger = logging.getLogger("GlobalLogger")
-
 # Abstract Base Class for Providers
 class BaseProvider(ABC):
     """Abstract base class for all providers."""
@@ -15,6 +11,7 @@ class BaseProvider(ABC):
         Initializes the Base Provider with required attributes.
         """
         self._resources_dict = {}
+        self.logger = logging.getLogger(__name__)
     
     def get_id(self, resource_type: str, resource_block: Dict) -> Optional[str]:
         """
@@ -29,6 +26,6 @@ class BaseProvider(ABC):
             method = getattr(self, resource_type)
             return method(resource_block)
         else:
-            global_logger.info(f"No such resource_type: {resource_type}")
+            self.logger.info(f"No such resource_type: {resource_type}")
             return None
     

@@ -1,9 +1,6 @@
 from terraform_importer.manager import Manager
 from terraform_importer.cli import TerraformImporterCLI
 import logging
-import argparse
-import os
-import sys
 
 def main():
 
@@ -20,7 +17,10 @@ def main():
 
     # Extract arguments
     terraform_config_path = args.config
-    options = args.option
+    # Split each option string by spaces to create an array of individual options
+    options = []
+    for option_string in args.option:
+        options.extend(option_string.split())
     targets = args.target
 
     logging.debug(f"Config path: {terraform_config_path}")

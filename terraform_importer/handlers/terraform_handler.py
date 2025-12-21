@@ -144,13 +144,17 @@ class TerraformHandler:
             targets (List[str]): List of Terraform resource targets.
         """
         try:
-            plan_command = self.__base_commands + ["plan", "-out=plan.out"] + self.__options + targets
+            if targets:
+                plan_command = self.__base_commands + ["plan"] + ["-target=" + target for target in targets] + self.__options + ["-out=plan.out"]
+            else:
+                plan_command = self.__base_commands + ["plan"] + self.__options + ["-out=plan.out"] 
             stdout, stderr, return_code = self.run_terraform_command(plan_command)
 
             if return_code == 0:
                 self.logger.info("Terraform plan executed successfully.")
             else:
                 self.logger.error("Terraform plan failed.")
+                exit(1)
         except Exception as e:
             self.logger.error(f"Error during plan operation: {e}")
 
@@ -176,6 +180,7 @@ class TerraformHandler:
             else:
                 self.logger.error("Terraform show failed.")
                 self.logger.error(stderr)
+                exit(1)
         except Exception as e:
             self.logger.error(f"Error during `terraform show`: {e}")
         return None

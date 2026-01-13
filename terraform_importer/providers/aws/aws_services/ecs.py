@@ -42,11 +42,12 @@ class ECSService(BaseAWSService):
             str: The AWS ECS Service name if it exists, otherwise None.
         """
         try:
-            # Extract cluster name dynamically
+            # Extract cluster name and service name dynamically
             cluster_name = resource['change']['after'].get('cluster')
+            service_name = resource['change']['after'].get('name')
     
             if not cluster_name or not service_name:
-                self.logger.error(f"Missing 'cluster'  in resource data: {resource['change']['after']}")
+                self.logger.error(f"Missing 'cluster' or 'name' in resource data: {resource['change']['after']}")
                 return None
     
             # **Validation Step**: Check if the ECS Service exists in AWS

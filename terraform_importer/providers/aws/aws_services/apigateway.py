@@ -47,8 +47,8 @@ class APIGatewayService(BaseAWSService):
             str: The AWS API Gateway REST API ID if it exists, otherwise None.
         """
         try:
-            api_name = resource['change']['after'].get('name')
             api_id = resource['change']['after'].get('id')
+            api_name = resource['change']['after'].get('name')
             
             if api_id:
                 # If ID is provided, validate it directly
@@ -57,6 +57,9 @@ class APIGatewayService(BaseAWSService):
                     return api_id
                 except self.client.exceptions.NotFoundException:
                     self.logger.error(f"API Gateway REST API with ID '{api_id}' not found.")
+                    return None
+                except botocore.exceptions.ClientError as e:
+                    self.logger.error(f"Error retrieving API Gateway REST API: {e}")
                     return None
             
             if api_name:
@@ -71,7 +74,7 @@ class APIGatewayService(BaseAWSService):
                     self.logger.error(f"Error retrieving API Gateway REST APIs: {e}")
                     return None
             else:
-                self.logger.error("Missing 'name' or 'id' in resource data")
+                self.logger.error("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
@@ -525,38 +528,38 @@ class APIGatewayService(BaseAWSService):
         
         return None
     
-    # def aws_apigatewayv2_api(self, resource):
-    #     """
-    #     Retrieves the AWS API Gateway V2 API ID after validating its existence.
+    def aws_apigatewayv2_api(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 API ID after validating its existence.
         
-    #     Args:
-    #         resource (dict): The resource block from Terraform.
+        Args:
+            resource (dict): The resource block from Terraform.
         
-    #     Returns:
-    #         str: The AWS API Gateway V2 API ID if it exists, otherwise None.
-    #     """
-    #     try:
-    #         name = resource['change']['after'].get('name')
+        Returns:
+            str: The AWS API Gateway V2 API ID if it exists, otherwise None.
+        """
+        try:
+            name = resource['change']['after'].get('name')
             
-    #         if name:
-    #             # Search by name
-    #             try:
-    #                 apis = self.client.get_apis()
-    #                 for api in apis.get('items', []):
-    #                     if api.get('name') == name:
-    #                         return api['id']
-    #                 self.logger.error(f"API Gateway V2 API '{name}' not found.")
-    #             except botocore.exceptions.ClientError as e:
-    #                 self.logger.error(f"Error retrieving API Gateway V2 APIs: {e}")
-    #                 return None
-    #         else:
-    #             self.logger.error("Missing 'name' in resource data")
-    #             return None
-    #     except KeyError as e:
-    #         self.logger.error(f"Missing expected key in resource: {e}")
-    #     except botocore.exceptions.ClientError as e:
-    #         self.logger.error(f"AWS ClientError while validating API Gateway V2 API: {e}")
-    #     except Exception as e:
-    #         self.logger.error(f"Unexpected error occurred: {e}")
+            if name:
+                # Search by name
+                try:
+                    apis = self.client.get_apis()
+                    for api in apis.get('items', []):
+                        if api.get('name') == name:
+                            return api['id']
+                    self.logger.error(f"API Gateway V2 API '{name}' not found.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.error(f"Error retrieving API Gateway V2 APIs: {e}")
+                    return None
+            else:
+                self.logger.error("Missing 'name' in resource data")
+                return None
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 API: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
         
-    #     return None
+        return None

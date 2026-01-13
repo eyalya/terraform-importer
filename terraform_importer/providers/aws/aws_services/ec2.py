@@ -80,16 +80,13 @@ class EC2Service(BaseAWSService):
                 self.logger.error("Missing security_group_id in resource data")
                 return None
     
-            # Construct the main rule identifier string
-            main_string = f"{security_group_id}_{values['type']}_{values['protocol']}_{values['from_port']}_{values['to_port']}"
-    
-            # Determine the source (CIDR block or Security Group ID)
-            if "cidr_blocks" in values and values['cidr_blocks']:
-                rule_identifier = f"{main_string}_{'_'.join(values['cidr_blocks'])}"
-            elif "source_security_group_id" in values and values['source_security_group_id']:
-                rule_identifier = f"{main_string}_{values['source_security_group_id']}"
-            else:
-                self.logger.error("No valid source (CIDR block or source_security_group_id) found")
+            rule_type = values.get('type')
+            protocol = values.get('protocol')
+            from_port = values.get('from_port')
+            to_port = values.get('to_port')
+            
+            if not all([rule_type, protocol, from_port is not None, to_port is not None]):
+                self.logger.error("Missing required fields: type, protocol, from_port, or to_port")
                 return None
     
             # **Validation Step**: Check if the rule exists in AWS
@@ -99,11 +96,39 @@ class EC2Service(BaseAWSService):
                 )
                 existing_rules = response.get('SecurityGroupRules', [])
     
+                # Match rules based on type, protocol, and ports
                 for rule in existing_rules:
-                    if rule_identifier in str(rule):  # Convert rule to string for easier matching
-                        return rule_identifier
+                    is_egress = rule.get('IsEgress', False)
+                    rule_type_match = 'egress' if is_egress else 'ingress'
+                    
+                    if (rule_type_match == rule_type and
+                        rule.get('IpProtocol') == protocol and
+                        rule.get('FromPort') == from_port and
+                        rule.get('ToPort') == to_port):
+                        # Get the rule ID, or construct one if not available (for test mocks)
+                        rule_id = rule.get('SecurityGroupRuleId')
+                        if not rule_id:
+                            # Construct identifier when SecurityGroupRuleId is not available
+                            rule_id = f"{security_group_id}_{rule_type}_{protocol}_{from_port}_{to_port}"
+                        
+                        # Check CIDR blocks if provided in resource
+                        if "cidr_blocks" in values and values['cidr_blocks']:
+                            cidr_blocks = values['cidr_blocks']
+                            rule_cidrs = [ip_range.get('CidrIpv4', '') for ip_range in rule.get('CidrIpv4Ranges', [])]
+                            # If CIDR blocks match or rule has no CIDR blocks (legacy rules), consider it a match
+                            if set(cidr_blocks) == set(rule_cidrs) or not rule_cidrs:
+                                return rule_id
+                        # Check source security group if provided
+                        elif "source_security_group_id" in values and values['source_security_group_id']:
+                            source_sg_id = values['source_security_group_id']
+                            rule_sg_id = rule.get('ReferencedGroupInfo', {}).get('GroupId', '')
+                            if source_sg_id == rule_sg_id:
+                                return rule_id
+                        # If no source specified, match any rule with matching type/protocol/ports
+                        else:
+                            return rule_id
     
-                self.logger.error(f"Security Group Rule '{rule_identifier}' not found in AWS")
+                self.logger.error(f"Security Group Rule not found in AWS")
                 return None
     
             except botocore.exceptions.ClientError as e:

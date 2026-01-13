@@ -121,9 +121,6 @@ class CloudWatchService(BaseAWSService):
         """
         try:
             rule_name = resource['change']['after']['name']
-            
-            # Create AWS Events client
-            client = boto3.client('events')
     
             # Check if the event rule exists
             response = self.events_client.list_rules(NamePrefix=rule_name)
@@ -139,7 +136,7 @@ class CloudWatchService(BaseAWSService):
     
         except KeyError as e:
             self.logger.error(f"Missing expected key in resource: {e}")
-        except boto3.exceptions.Boto3Error as e:
+        except botocore.exceptions.ClientError as e:
             self.logger.error(f"Failed to validate CloudWatch Event Rule: {e}")
         except Exception as e:
             self.logger.error(f"An unexpected error occurred: {e}")

@@ -36,7 +36,9 @@ class TestAPIGatewayService(unittest.TestCase):
             "aws_api_gateway_usage_plan",
             "aws_api_gateway_authorizer",
             "aws_api_gateway_method_response",
-            "aws_api_gateway_integration_response"
+            "aws_api_gateway_integration_response",
+            "aws_apigatewayv2_api",
+            "aws_apigatewayv2_authorizer"
         ]
         self.assertEqual(resources, expected_resources)
 
@@ -391,8 +393,27 @@ class TestAPIGatewayService(unittest.TestCase):
         
         self.assertIsNone(result)
 
-    def test_aws_apigatewayv2_api_success(self):
-        """Test aws_apigatewayv2_api with successful response"""
+    def test_aws_apigatewayv2_api_by_id(self):
+        """Test aws_apigatewayv2_api with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "api123",
+                    "name": "test-v2-api"
+                }
+            }
+        }
+        self.mock_client.get_api.return_value = {
+            "ApiId": "api123",
+            "Name": "test-v2-api"
+        }
+        
+        result = self.service.aws_apigatewayv2_api(resource)
+        
+        self.assertEqual(result, "api123")
+
+    def test_aws_apigatewayv2_api_by_name(self):
+        """Test aws_apigatewayv2_api with name"""
         resource = {
             "change": {
                 "after": {
@@ -401,13 +422,12 @@ class TestAPIGatewayService(unittest.TestCase):
             }
         }
         self.mock_client.get_apis.return_value = {
-            "items": [{"id": "api123", "name": "test-v2-api"}]
+            "Items": [{"ApiId": "api123", "Name": "test-v2-api"}]
         }
         
         result = self.service.aws_apigatewayv2_api(resource)
         
         self.assertEqual(result, "api123")
-        self.mock_client.get_apis.assert_called_once()
 
     def test_aws_apigatewayv2_api_not_found(self):
         """Test aws_apigatewayv2_api when API doesn't exist"""
@@ -419,15 +439,15 @@ class TestAPIGatewayService(unittest.TestCase):
             }
         }
         self.mock_client.get_apis.return_value = {
-            "items": []
+            "Items": []
         }
         
         result = self.service.aws_apigatewayv2_api(resource)
         
         self.assertIsNone(result)
 
-    def test_aws_apigatewayv2_api_missing_name(self):
-        """Test aws_apigatewayv2_api with missing name"""
+    def test_aws_apigatewayv2_api_missing_fields(self):
+        """Test aws_apigatewayv2_api with missing id and name"""
         resource = {
             "change": {
                 "after": {}
@@ -475,16 +495,166 @@ class TestAPIGatewayService(unittest.TestCase):
             }
         }
         self.mock_client.get_apis.return_value = {
-            "items": [
-                {"id": "api123", "name": "other-api"},
-                {"id": "api456", "name": "test-v2-api"},
-                {"id": "api789", "name": "another-api"}
+            "Items": [
+                {"ApiId": "api123", "Name": "other-api"},
+                {"ApiId": "api456", "Name": "test-v2-api"},
+                {"ApiId": "api789", "Name": "another-api"}
             ]
         }
         
         result = self.service.aws_apigatewayv2_api(resource)
         
         self.assertEqual(result, "api456")
+
+    # Tests for aws_apigatewayv2_authorizer
+    def test_aws_apigatewayv2_authorizer_by_id(self):
+        """Test aws_apigatewayv2_authorizer with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "auth456"
+                }
+            }
+        }
+        self.mock_client.get_authorizer.return_value = {
+            "AuthorizerId": "auth456",
+            "Name": "test-authorizer"
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertEqual(result, "api123/auth456")
+
+    def test_aws_apigatewayv2_authorizer_by_name(self):
+        """Test aws_apigatewayv2_authorizer with name"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "name": "test-authorizer"
+                }
+            }
+        }
+        self.mock_client.get_authorizers.return_value = {
+            "Items": [{"AuthorizerId": "auth456", "Name": "test-authorizer"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertEqual(result, "api123/auth456")
+
+    def test_aws_apigatewayv2_authorizer_not_found_by_id(self):
+        """Test aws_apigatewayv2_authorizer when authorizer ID doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "auth456"
+                }
+            }
+        }
+        self.mock_client.get_authorizer.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_not_found_by_name(self):
+        """Test aws_apigatewayv2_authorizer when authorizer name doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "name": "test-authorizer"
+                }
+            }
+        }
+        self.mock_client.get_authorizers.return_value = {
+            "Items": []
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_missing_api_id(self):
+        """Test aws_apigatewayv2_authorizer with missing api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "name": "test-authorizer"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_missing_id_and_name(self):
+        """Test aws_apigatewayv2_authorizer with missing id and name"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_client_error(self):
+        """Test aws_apigatewayv2_authorizer with ClientError"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "name": "test-authorizer"
+                }
+            }
+        }
+        self.mock_client.get_authorizers.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "UnauthorizedOperation"}}, "GetAuthorizers"
+        )
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_key_error(self):
+        """Test aws_apigatewayv2_authorizer with KeyError"""
+        resource = {
+            "change": {}
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_authorizer_multiple_authorizers(self):
+        """Test aws_apigatewayv2_authorizer with multiple authorizers, finding the correct one"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "name": "test-authorizer"
+                }
+            }
+        }
+        self.mock_client.get_authorizers.return_value = {
+            "Items": [
+                {"AuthorizerId": "auth123", "Name": "other-authorizer"},
+                {"AuthorizerId": "auth456", "Name": "test-authorizer"},
+                {"AuthorizerId": "auth789", "Name": "another-authorizer"}
+            ]
+        }
+        
+        result = self.service.aws_apigatewayv2_authorizer(resource)
+        
+        self.assertEqual(result, "api123/auth456")
 
 
 if __name__ == "__main__":

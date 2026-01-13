@@ -119,6 +119,64 @@ class TestIAMService(unittest.TestCase):
         
         self.assertIsNone(result)
 
+    def test_aws_iam_policy_with_path(self):
+        """Test aws_iam_policy with path in ARN"""
+        resource = {
+            "change": {
+                "after": {
+                    "name": "langfuse-s3-access-dev",
+                    "path": "/sa/"
+                }
+            }
+        }
+        policy_arn = "arn:aws:iam::123456789012:policy/sa/langfuse-s3-access-dev"
+        self.mock_client.get_policy.return_value = {
+            "Policy": {"PolicyName": "langfuse-s3-access-dev", "Arn": policy_arn}
+        }
+        
+        result = self.service.aws_iam_policy(resource)
+        
+        self.assertEqual(result, policy_arn)
+        self.mock_client.get_policy.assert_called_once_with(PolicyArn=policy_arn)
+
+    def test_aws_iam_policy_with_path_no_leading_slash(self):
+        """Test aws_iam_policy with path that doesn't start with /"""
+        resource = {
+            "change": {
+                "after": {
+                    "name": "test-policy",
+                    "path": "sa/"
+                }
+            }
+        }
+        policy_arn = "arn:aws:iam::123456789012:policy/sa/test-policy"
+        self.mock_client.get_policy.return_value = {
+            "Policy": {"PolicyName": "test-policy", "Arn": policy_arn}
+        }
+        
+        result = self.service.aws_iam_policy(resource)
+        
+        self.assertEqual(result, policy_arn)
+
+    def test_aws_iam_policy_with_path_no_trailing_slash(self):
+        """Test aws_iam_policy with path that doesn't end with /"""
+        resource = {
+            "change": {
+                "after": {
+                    "name": "test-policy",
+                    "path": "/sa"
+                }
+            }
+        }
+        policy_arn = "arn:aws:iam::123456789012:policy/sa/test-policy"
+        self.mock_client.get_policy.return_value = {
+            "Policy": {"PolicyName": "test-policy", "Arn": policy_arn}
+        }
+        
+        result = self.service.aws_iam_policy(resource)
+        
+        self.assertEqual(result, policy_arn)
+
     def test_aws_iam_role_policy_success(self):
         """Test aws_iam_role_policy with successful response"""
         resource = {

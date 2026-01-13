@@ -50,12 +50,35 @@ class IAMService(BaseAWSService):
         if not policy_name:
             self.logger.error("Missing policy name.")
             return None
-        policy_arn = f"arn:aws:iam::{self.session.client('sts').get_caller_identity()['Account']}:policy/{policy_name}"
+        
+        # Get path, default to '/' if not specified
+        path = resource['change']['after'].get('path', '/')
+        
+        # Normalize path: ensure it starts with '/' and ends with '/' (unless it's just '/')
+        if path == '/':
+            policy_path = '/'
+        else:
+            # Ensure leading slash
+            if not path.startswith('/'):
+                path = '/' + path
+            # Ensure trailing slash
+            if not path.endswith('/'):
+                path = path + '/'
+            policy_path = path
+        
+        # Construct ARN: arn:aws:iam::{account}:policy{path}{name}
+        account_id = self.session.client('sts').get_caller_identity()['Account']
+        policy_arn = f"arn:aws:iam::{account_id}:policy{policy_path}{policy_name}"
+        
         try:
             self.client.get_policy(PolicyArn=policy_arn)
             return policy_arn
         except self.client.exceptions.NoSuchEntityException:
-            self.logger.error(f"IAM policy '{policy_arn}' does not exist.")
+            self.logger.warning(f"IAM policy '{policy_arn}' does not exist.")
+        except botocore.exceptions.ClientError as e:
+            self.logger.warning(f"AWS ClientError while validating IAM policy: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
         return None
 
     def aws_iam_role_policy(self, resource):

@@ -24,7 +24,9 @@ class APIGatewayService(BaseAWSService):
             "aws_api_gateway_usage_plan",
             "aws_api_gateway_authorizer",
             "aws_api_gateway_method_response",
-            "aws_api_gateway_integration_response"
+            "aws_api_gateway_integration_response",
+            "aws_apigatewayv2_api",
+            "aws_apigatewayv2_authorizer"
         ]
 
     def get_resource_list(self) -> List[str]:
@@ -539,26 +541,95 @@ class APIGatewayService(BaseAWSService):
             str: The AWS API Gateway V2 API ID if it exists, otherwise None.
         """
         try:
+            api_id = resource['change']['after'].get('id')
             name = resource['change']['after'].get('name')
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if api_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_api(ApiId=api_id)
+                    return api_id
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.error(f"API Gateway V2 API with ID '{api_id}' not found.")
+                    return None
             
             if name:
                 # Search by name
                 try:
-                    apis = self.client.get_apis()
-                    for api in apis.get('items', []):
-                        if api.get('name') == name:
-                            return api['id']
+                    apis = v2_client.get_apis()
+                    for api in apis.get('Items', []):
+                        if api.get('Name') == name:
+                            return api['ApiId']
                     self.logger.error(f"API Gateway V2 API '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
                     self.logger.error(f"Error retrieving API Gateway V2 APIs: {e}")
                     return None
             else:
-                self.logger.error("Missing 'name' in resource data")
+                self.logger.error("Missing 'id' or 'name' in resource data")
                 return None
+                
         except KeyError as e:
             self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
             self.logger.error(f"AWS ClientError while validating API Gateway V2 API: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_authorizer(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Authorizer identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Authorizer identifier in format 'api_id/authorizer_id' if it exists, otherwise None.
+        """
+        try:
+            api_id = resource['change']['after'].get('api_id')
+            authorizer_id = resource['change']['after'].get('id')
+            name = resource['change']['after'].get('name')
+            
+            if not api_id:
+                self.logger.error("Missing 'api_id' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if authorizer_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_authorizer(ApiId=api_id, AuthorizerId=authorizer_id)
+                    return f"{api_id}/{authorizer_id}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.error(f"API Gateway V2 Authorizer with ID '{authorizer_id}' not found.")
+                    return None
+            
+            if name:
+                # Search by name
+                try:
+                    authorizers = v2_client.get_authorizers(ApiId=api_id)
+                    for auth in authorizers.get('Items', []):
+                        if auth.get('Name') == name:
+                            return f"{api_id}/{auth['AuthorizerId']}"
+                    self.logger.error(f"API Gateway V2 Authorizer '{name}' not found.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.error(f"Error retrieving API Gateway V2 Authorizers: {e}")
+                    return None
+            else:
+                self.logger.error("Missing 'id' or 'name' in resource data")
+                return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Authorizer: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         

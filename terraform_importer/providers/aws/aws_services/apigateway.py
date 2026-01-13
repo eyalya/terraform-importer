@@ -26,7 +26,13 @@ class APIGatewayService(BaseAWSService):
             "aws_api_gateway_method_response",
             "aws_api_gateway_integration_response",
             "aws_apigatewayv2_api",
-            "aws_apigatewayv2_authorizer"
+            "aws_apigatewayv2_authorizer",
+            "aws_apigatewayv2_api_mapping",
+            "aws_apigatewayv2_deployment",
+            "aws_apigatewayv2_domain_name",
+            "aws_apigatewayv2_integration",
+            "aws_apigatewayv2_integration_response",
+            "aws_apigatewayv2_route"
         ]
 
     def get_resource_list(self) -> List[str]:
@@ -630,6 +636,307 @@ class APIGatewayService(BaseAWSService):
             self.logger.error(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
             self.logger.error(f"AWS ClientError while validating API Gateway V2 Authorizer: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_api_mapping(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 API Mapping identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 API Mapping identifier in format 'api_mapping_id/domain_name' if it exists, otherwise None.
+        """
+        try:
+            api_mapping_id = resource['change']['after'].get('id')
+            domain_name = resource['change']['after'].get('domain_name')
+            api_id = resource['change']['after'].get('api_id')
+            
+            if not domain_name:
+                self.logger.error("Missing 'domain_name' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if api_mapping_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_api_mapping(ApiMappingId=api_mapping_id, DomainName=domain_name)
+                    return f"{api_mapping_id}/{domain_name}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.warning(f"API Gateway V2 API Mapping with ID '{api_mapping_id}' not found.")
+                    return None
+            
+            if api_id:
+                # Search by api_id
+                try:
+                    mappings = v2_client.get_api_mappings(DomainName=domain_name)
+                    for mapping in mappings.get('Items', []):
+                        if mapping.get('ApiId') == api_id:
+                            return f"{mapping['ApiMappingId']}/{domain_name}"
+                    self.logger.warning(f"API Gateway V2 API Mapping for API '{api_id}' not found on domain '{domain_name}'.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 API Mappings: {e}")
+                    return None
+            else:
+                self.logger.error("Missing 'id' or 'api_id' in resource data")
+                return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 API Mapping: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_deployment(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Deployment identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Deployment identifier in format 'api_id/deployment_id' if it exists, otherwise None.
+        """
+        try:
+            api_id = resource['change']['after'].get('api_id')
+            deployment_id = resource['change']['after'].get('id')
+            
+            if not api_id:
+                self.logger.error("Missing 'api_id' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if deployment_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_deployment(ApiId=api_id, DeploymentId=deployment_id)
+                    return f"{api_id}/{deployment_id}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.warning(f"API Gateway V2 Deployment with ID '{deployment_id}' not found.")
+                    return None
+            else:
+                # Get the latest deployment
+                try:
+                    deployments = v2_client.get_deployments(ApiId=api_id)
+                    if deployments.get('Items'):
+                        latest_deployment = deployments['Items'][0]
+                        return f"{api_id}/{latest_deployment['DeploymentId']}"
+                    self.logger.warning(f"No deployments found for API '{api_id}'.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 Deployments: {e}")
+                    return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Deployment: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_domain_name(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Domain Name after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Domain Name if it exists, otherwise None.
+        """
+        try:
+            domain_name = resource['change']['after'].get('domain_name')
+            
+            if not domain_name:
+                self.logger.error("Missing 'domain_name' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            try:
+                v2_client.get_domain_name(DomainName=domain_name)
+                return domain_name
+            except v2_client.exceptions.NotFoundException:
+                self.logger.warning(f"API Gateway V2 Domain Name '{domain_name}' not found.")
+                return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Domain Name: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_integration(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Integration identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Integration identifier in format 'api_id/integration_id' if it exists, otherwise None.
+        """
+        try:
+            api_id = resource['change']['after'].get('api_id')
+            integration_id = resource['change']['after'].get('id')
+            
+            if not api_id:
+                self.logger.error("Missing 'api_id' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if integration_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_integration(ApiId=api_id, IntegrationId=integration_id)
+                    return f"{api_id}/{integration_id}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.warning(f"API Gateway V2 Integration with ID '{integration_id}' not found.")
+                    return None
+            else:
+                # Get the first integration
+                try:
+                    integrations = v2_client.get_integrations(ApiId=api_id)
+                    if integrations.get('Items'):
+                        first_integration = integrations['Items'][0]
+                        return f"{api_id}/{first_integration['IntegrationId']}"
+                    self.logger.warning(f"No integrations found for API '{api_id}'.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 Integrations: {e}")
+                    return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Integration: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_integration_response(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Integration Response identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Integration Response identifier in format 'api_id/integration_id/integration_response_id' if it exists, otherwise None.
+        """
+        try:
+            api_id = resource['change']['after'].get('api_id')
+            integration_id = resource['change']['after'].get('integration_id')
+            integration_response_id = resource['change']['after'].get('id')
+            
+            if not all([api_id, integration_id]):
+                self.logger.error("Missing required fields: 'api_id' or 'integration_id'")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if integration_response_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_integration_response(
+                        ApiId=api_id,
+                        IntegrationId=integration_id,
+                        IntegrationResponseId=integration_response_id
+                    )
+                    return f"{api_id}/{integration_id}/{integration_response_id}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.warning(f"API Gateway V2 Integration Response with ID '{integration_response_id}' not found.")
+                    return None
+            else:
+                # Get the first integration response
+                try:
+                    responses = v2_client.get_integration_responses(ApiId=api_id, IntegrationId=integration_id)
+                    if responses.get('Items'):
+                        first_response = responses['Items'][0]
+                        return f"{api_id}/{integration_id}/{first_response['IntegrationResponseId']}"
+                    self.logger.warning(f"No integration responses found for integration '{integration_id}'.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 Integration Responses: {e}")
+                    return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Integration Response: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        
+        return None
+
+    def aws_apigatewayv2_route(self, resource):
+        """
+        Retrieves the AWS API Gateway V2 Route identifier after validating its existence.
+        
+        Args:
+            resource (dict): The resource block from Terraform.
+        
+        Returns:
+            str: The AWS API Gateway V2 Route identifier in format 'api_id/route_id' if it exists, otherwise None.
+        """
+        try:
+            api_id = resource['change']['after'].get('api_id')
+            route_id = resource['change']['after'].get('id')
+            route_key = resource['change']['after'].get('route_key')
+            
+            if not api_id:
+                self.logger.error("Missing 'api_id' in resource data")
+                return None
+            
+            # Get the apigatewayv2 client for HTTP/WebSocket APIs
+            v2_client = self.get_client("apigatewayv2")
+            
+            if route_id:
+                # If ID is provided, validate it directly
+                try:
+                    v2_client.get_route(ApiId=api_id, RouteId=route_id)
+                    return f"{api_id}/{route_id}"
+                except v2_client.exceptions.NotFoundException:
+                    self.logger.warning(f"API Gateway V2 Route with ID '{route_id}' not found.")
+                    return None
+            
+            if route_key:
+                # Search by route_key
+                try:
+                    routes = v2_client.get_routes(ApiId=api_id)
+                    for route in routes.get('Items', []):
+                        if route.get('RouteKey') == route_key:
+                            return f"{api_id}/{route['RouteId']}"
+                    self.logger.warning(f"API Gateway V2 Route with key '{route_key}' not found.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 Routes: {e}")
+                    return None
+            else:
+                self.logger.error("Missing 'id' or 'route_key' in resource data")
+                return None
+                
+        except KeyError as e:
+            self.logger.error(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"AWS ClientError while validating API Gateway V2 Route: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         

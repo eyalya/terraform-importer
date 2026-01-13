@@ -38,7 +38,13 @@ class TestAPIGatewayService(unittest.TestCase):
             "aws_api_gateway_method_response",
             "aws_api_gateway_integration_response",
             "aws_apigatewayv2_api",
-            "aws_apigatewayv2_authorizer"
+            "aws_apigatewayv2_authorizer",
+            "aws_apigatewayv2_api_mapping",
+            "aws_apigatewayv2_deployment",
+            "aws_apigatewayv2_domain_name",
+            "aws_apigatewayv2_integration",
+            "aws_apigatewayv2_integration_response",
+            "aws_apigatewayv2_route"
         ]
         self.assertEqual(resources, expected_resources)
 
@@ -655,6 +661,589 @@ class TestAPIGatewayService(unittest.TestCase):
         result = self.service.aws_apigatewayv2_authorizer(resource)
         
         self.assertEqual(result, "api123/auth456")
+
+    # Tests for aws_apigatewayv2_api_mapping
+    def test_aws_apigatewayv2_api_mapping_by_id(self):
+        """Test aws_apigatewayv2_api_mapping with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "mapping123",
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        self.mock_client.get_api_mapping.return_value = {
+            "ApiMappingId": "mapping123",
+            "DomainName": "api.example.com"
+        }
+        
+        result = self.service.aws_apigatewayv2_api_mapping(resource)
+        
+        self.assertEqual(result, "mapping123/api.example.com")
+
+    def test_aws_apigatewayv2_api_mapping_by_api_id(self):
+        """Test aws_apigatewayv2_api_mapping with api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "domain_name": "api.example.com",
+                    "api_id": "api123"
+                }
+            }
+        }
+        self.mock_client.get_api_mappings.return_value = {
+            "Items": [{"ApiMappingId": "mapping123", "ApiId": "api123"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_api_mapping(resource)
+        
+        self.assertEqual(result, "mapping123/api.example.com")
+
+    def test_aws_apigatewayv2_api_mapping_not_found(self):
+        """Test aws_apigatewayv2_api_mapping when mapping doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "mapping123",
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        self.mock_client.get_api_mapping.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_api_mapping(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_api_mapping_missing_domain_name(self):
+        """Test aws_apigatewayv2_api_mapping with missing domain_name"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_api_mapping(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_api_mapping_missing_id_and_api_id(self):
+        """Test aws_apigatewayv2_api_mapping with missing id and api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_api_mapping(resource)
+        
+        self.assertIsNone(result)
+
+    # Tests for aws_apigatewayv2_deployment
+    def test_aws_apigatewayv2_deployment_by_id(self):
+        """Test aws_apigatewayv2_deployment with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "dep456"
+                }
+            }
+        }
+        self.mock_client.get_deployment.return_value = {
+            "DeploymentId": "dep456"
+        }
+        
+        result = self.service.aws_apigatewayv2_deployment(resource)
+        
+        self.assertEqual(result, "api123/dep456")
+
+    def test_aws_apigatewayv2_deployment_latest(self):
+        """Test aws_apigatewayv2_deployment without ID (gets latest)"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        self.mock_client.get_deployments.return_value = {
+            "Items": [{"DeploymentId": "dep456"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_deployment(resource)
+        
+        self.assertEqual(result, "api123/dep456")
+
+    def test_aws_apigatewayv2_deployment_not_found(self):
+        """Test aws_apigatewayv2_deployment when deployment doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "dep456"
+                }
+            }
+        }
+        self.mock_client.get_deployment.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_deployment(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_deployment_missing_api_id(self):
+        """Test aws_apigatewayv2_deployment with missing api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "dep456"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_deployment(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_deployment_no_deployments(self):
+        """Test aws_apigatewayv2_deployment when no deployments exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        self.mock_client.get_deployments.return_value = {
+            "Items": []
+        }
+        
+        result = self.service.aws_apigatewayv2_deployment(resource)
+        
+        self.assertIsNone(result)
+
+    # Tests for aws_apigatewayv2_domain_name
+    def test_aws_apigatewayv2_domain_name_success(self):
+        """Test aws_apigatewayv2_domain_name with successful response"""
+        resource = {
+            "change": {
+                "after": {
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        self.mock_client.get_domain_name.return_value = {
+            "DomainName": "api.example.com"
+        }
+        
+        result = self.service.aws_apigatewayv2_domain_name(resource)
+        
+        self.assertEqual(result, "api.example.com")
+
+    def test_aws_apigatewayv2_domain_name_not_found(self):
+        """Test aws_apigatewayv2_domain_name when domain doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        self.mock_client.get_domain_name.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_domain_name(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_domain_name_missing_field(self):
+        """Test aws_apigatewayv2_domain_name with missing domain_name"""
+        resource = {
+            "change": {
+                "after": {}
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_domain_name(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_domain_name_client_error(self):
+        """Test aws_apigatewayv2_domain_name with ClientError"""
+        resource = {
+            "change": {
+                "after": {
+                    "domain_name": "api.example.com"
+                }
+            }
+        }
+        self.mock_client.get_domain_name.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "UnauthorizedOperation"}}, "GetDomainName"
+        )
+        
+        result = self.service.aws_apigatewayv2_domain_name(resource)
+        
+        self.assertIsNone(result)
+
+    # Tests for aws_apigatewayv2_integration
+    def test_aws_apigatewayv2_integration_by_id(self):
+        """Test aws_apigatewayv2_integration with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "int456"
+                }
+            }
+        }
+        self.mock_client.get_integration.return_value = {
+            "IntegrationId": "int456"
+        }
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertEqual(result, "api123/int456")
+
+    def test_aws_apigatewayv2_integration_first_integration(self):
+        """Test aws_apigatewayv2_integration without ID (gets first)"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        self.mock_client.get_integrations.return_value = {
+            "Items": [{"IntegrationId": "int456"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertEqual(result, "api123/int456")
+
+    def test_aws_apigatewayv2_integration_not_found(self):
+        """Test aws_apigatewayv2_integration when integration doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "int456"
+                }
+            }
+        }
+        self.mock_client.get_integration.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_missing_api_id(self):
+        """Test aws_apigatewayv2_integration with missing api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "int456"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_no_integrations(self):
+        """Test aws_apigatewayv2_integration when no integrations exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        self.mock_client.get_integrations.return_value = {
+            "Items": []
+        }
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_client_error(self):
+        """Test aws_apigatewayv2_integration with ClientError"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "int456"
+                }
+            }
+        }
+        self.mock_client.get_integration.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "UnauthorizedOperation"}}, "GetIntegration"
+        )
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertIsNone(result)
+
+    # Tests for aws_apigatewayv2_integration_response
+    def test_aws_apigatewayv2_integration_response_by_id(self):
+        """Test aws_apigatewayv2_integration_response with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456",
+                    "id": "resp789"
+                }
+            }
+        }
+        self.mock_client.get_integration_response.return_value = {
+            "IntegrationResponseId": "resp789"
+        }
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertEqual(result, "api123/int456/resp789")
+
+    def test_aws_apigatewayv2_integration_response_first_response(self):
+        """Test aws_apigatewayv2_integration_response without ID (gets first)"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456"
+                }
+            }
+        }
+        self.mock_client.get_integration_responses.return_value = {
+            "Items": [{"IntegrationResponseId": "resp789"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertEqual(result, "api123/int456/resp789")
+
+    def test_aws_apigatewayv2_integration_response_not_found(self):
+        """Test aws_apigatewayv2_integration_response when response doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456",
+                    "id": "resp789"
+                }
+            }
+        }
+        self.mock_client.get_integration_response.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_response_missing_fields(self):
+        """Test aws_apigatewayv2_integration_response with missing required fields"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_response_no_responses(self):
+        """Test aws_apigatewayv2_integration_response when no responses exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456"
+                }
+            }
+        }
+        self.mock_client.get_integration_responses.return_value = {
+            "Items": []
+        }
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_response_client_error(self):
+        """Test aws_apigatewayv2_integration_response with ClientError"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456",
+                    "id": "resp789"
+                }
+            }
+        }
+        self.mock_client.get_integration_response.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "UnauthorizedOperation"}}, "GetIntegrationResponse"
+        )
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertIsNone(result)
+
+    # Tests for aws_apigatewayv2_route
+    def test_aws_apigatewayv2_route_by_id(self):
+        """Test aws_apigatewayv2_route with ID"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "route456"
+                }
+            }
+        }
+        self.mock_client.get_route.return_value = {
+            "RouteId": "route456"
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertEqual(result, "api123/route456")
+
+    def test_aws_apigatewayv2_route_by_route_key(self):
+        """Test aws_apigatewayv2_route with route_key"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "route_key": "GET /users"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [{"RouteId": "route456", "RouteKey": "GET /users"}]
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertEqual(result, "api123/route456")
+
+    def test_aws_apigatewayv2_route_not_found(self):
+        """Test aws_apigatewayv2_route when route doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "route456"
+                }
+            }
+        }
+        self.mock_client.get_route.side_effect = self.service.client.exceptions.NotFoundException()
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_route_not_found_by_key(self):
+        """Test aws_apigatewayv2_route when route_key doesn't match"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "route_key": "GET /users"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": []
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_route_missing_api_id(self):
+        """Test aws_apigatewayv2_route with missing api_id"""
+        resource = {
+            "change": {
+                "after": {
+                    "id": "route456"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_route_missing_id_and_route_key(self):
+        """Test aws_apigatewayv2_route with missing id and route_key"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123"
+                }
+            }
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_route_client_error(self):
+        """Test aws_apigatewayv2_route with ClientError"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "id": "route456"
+                }
+            }
+        }
+        self.mock_client.get_route.side_effect = botocore.exceptions.ClientError(
+            {"Error": {"Code": "UnauthorizedOperation"}}, "GetRoute"
+        )
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_route_multiple_routes(self):
+        """Test aws_apigatewayv2_route with multiple routes, finding the correct one"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "route_key": "GET /users"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [
+                {"RouteId": "route111", "RouteKey": "POST /users"},
+                {"RouteId": "route456", "RouteKey": "GET /users"},
+                {"RouteId": "route789", "RouteKey": "DELETE /users"}
+            ]
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertEqual(result, "api123/route456")
+
+    def test_aws_apigatewayv2_route_key_error(self):
+        """Test aws_apigatewayv2_route with KeyError"""
+        resource = {
+            "change": {}
+        }
+        
+        result = self.service.aws_apigatewayv2_route(resource)
+        
+        self.assertIsNone(result)
 
 
 if __name__ == "__main__":

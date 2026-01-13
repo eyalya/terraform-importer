@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import boto3
 import botocore
 import logging
-from terraform_importer.providers.aws_services.base import BaseAWSService
+from terraform_importer.providers.aws.aws_services.base import BaseAWSService
 
 class LambdaService(BaseAWSService):
     """

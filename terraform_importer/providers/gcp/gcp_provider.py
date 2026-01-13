@@ -1,4 +1,5 @@
-from base_provider import BaseProvider
+from terraform_importer.providers.base_provider import BaseProvider
+from typing import List, Optional, Dict
 
 # GCP Provider
 class GCPProvider(BaseProvider):

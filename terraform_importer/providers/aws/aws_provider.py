@@ -1,7 +1,7 @@
 from terraform_importer.providers.base_provider import BaseProvider
 from typing import List, Optional, Dict
-from terraform_importer.providers.aws_services.base import BaseAWSService
-from terraform_importer.providers.aws_services.aws_auth import AWSAuthHandler
+from terraform_importer.providers.aws.aws_services.base import BaseAWSService
+from terraform_importer.providers.aws.aws_services.aws_auth import AWSAuthHandler
 import os
 import importlib.util
 import logging
@@ -22,7 +22,10 @@ class AWSProvider(BaseProvider):
         self.logger = logging.getLogger(__name__)
         
         # Discover and instantiate all subclasses of BaseAWSService
-        service_classes = self.get_aws_service_subclasses(BaseAWSService, "terraform_importer/providers/aws_services")
+        # Get the directory of this file and construct path to aws_services
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        aws_services_path = os.path.join(current_dir, "aws_services")
+        service_classes = self.get_aws_service_subclasses(BaseAWSService, aws_services_path)
         for service_class in service_classes:
             # Instantiate the service
             service_instance = service_class(self._sessions)

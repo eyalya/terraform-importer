@@ -4,14 +4,14 @@ from typing import List, Dict
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from terraform_importer.providers.bitbucket_provider import BitbucketDfraustProvider
+from terraform_importer.providers.bitbucket.bitbucket_provider import BitbucketDfraustProvider
 from terraform_importer.handlers.providers_handler import ProvidersHandler
 
 
 import unittest
 from unittest.mock import patch, MagicMock
 import requests
-from terraform_importer.providers.bitbucket_provider import BitbucketDfraustProvider
+from terraform_importer.providers.bitbucket.bitbucket_provider import BitbucketDfraustProvider
 
 @patch.object(BitbucketDfraustProvider, 'run_command')  # Class-level patch
 class TestBitbucketDfraustProvider(unittest.TestCase):
@@ -84,7 +84,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
     
     ########### test get_variable_uuid ##########
     
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
     def test_get_variable_uuid_found(self, mock_get_all_results, mock_run_command):
         """Test get_variable_uuid when variable is found."""
         #mock_check_auth = MagicMock()
@@ -106,7 +106,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
             provider.list_deployment_variables_uuid, "repo-name", deployment_uuid=None
         )
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
     def test_get_variable_uuid_not_found(self, mock_get_all_results, mock_run_command):
         """Test get_variable_uuid when variable is not found."""
 
@@ -123,7 +123,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         self.assertIsNone(result)
         mock_get_all_results.assert_called_once()
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.get_all_results")
     def test_get_variable_uuid_empty_list(self, mock_get_all_results, mock_run_command):
         """Test get_variable_uuid when API returns an empty list."""
 
@@ -138,7 +138,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
 
     ########### test list_deployment_variables_uuid ##############
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_list_deployment_variables_uuid_success(self,mock_check_auth, mock_run_command):
         """Test list_deployment_variables_uuid when API call is successful"""
         
@@ -166,7 +166,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
              # Ensure the logger was used for debug purposes
              mock_logger_debug.assert_any_call("Get Variables")
     
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_list_deployment_variables_uuid_error(self, mock_check_auth, mock_run_command):
         """Test list_deployment_variables_uuid when API call fails (non-200 status code)"""
 
@@ -191,7 +191,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
              # Ensure that the error was logged
              mock_logger_error.assert_called_with("Request failed: 400 - Bad Request")
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_list_deployment_variables_uuid_exception(self,mock_check_auth, mock_run_command):
         """Test list_deployment_variables_uuid when an exception is raised"""
         
@@ -213,7 +213,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
 
     ########### test get_deployment_uuid ##########
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_get_deployment_uuid_success(self,mock_check_auth, mock_run_command):
         """Test get_deployment_uuid when deployment is found"""
 
@@ -234,7 +234,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         
         self.assertEqual(result, "uuid-1234")  # Check if the correct UUID was returned
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_get_deployment_uuid_not_found(self,mock_check_auth, mock_run_command):
         """Test get_deployment_uuid when deployment is not found"""
 
@@ -255,7 +255,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         
         self.assertIsNone(result)  # Should return None since the deployment isn't found
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_get_deployment_uuid_exception(self,mock_check_auth, mock_run_command):
         """Test get_deployment_uuid when an exception is raised"""
 
@@ -273,7 +273,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
              # Ensure that the exception was logged
              mock_logger_error.assert_called_with("Request failed: Network error")
 
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_get_deployment_uuid_invalid_response(self, mock_check_auth, mock_run_command):
         """Test get_deployment_uuid when response is malformed"""
 
@@ -292,7 +292,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
 
     ########### test bitbucket_repository_variable ###########
     
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     @patch.object(BitbucketDfraustProvider, 'get_variable_uuid')  # Mocking the get_variable_uuid method
     def test_bitbucket_repository_variable_success(self, mock_get_variable_uuid, mock_check_auth, mock_run_command):
         """Test bitbucket_repository_variable when UUID is found."""
@@ -321,7 +321,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         self.assertEqual(result, "repo-name/my-variable/1234-uuid-5678")
         mock_get_variable_uuid.assert_called_once_with('repo-name', 'my-variable')
     
-    @patch("terraform_importer.providers.bitbucket_provider.BitbucketDfraustProvider.check_auth")
+    @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     @patch.object(BitbucketDfraustProvider, 'get_variable_uuid')  # Mocking the get_variable_uuid method
     def test_bitbucket_repository_variable_not_found(self, mock_get_variable_uuid, mock_check_auth, mock_run_command):
         """Test bitbucket_repository_variable when UUID is not found."""

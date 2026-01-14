@@ -782,9 +782,35 @@ class APIGatewayService(BaseAWSService):
         
         return None
 
+    def _get_websocket_route_key_from_uri(self, integration_uri: str) -> Optional[str]:
+        """
+        Extracts the WebSocket route key from an integration URI.
+        
+        Args:
+            integration_uri (str): The integration URI (e.g., 'https://example.com/websocket/connect')
+        
+        Returns:
+            str: The route key ('$connect', '$disconnect', or '$default') or None if not determinable.
+        """
+        if not integration_uri:
+            return None
+        
+        uri_lower = integration_uri.lower()
+        if 'connect' in uri_lower and 'disconnect' not in uri_lower:
+            return '$connect'
+        elif 'disconnect' in uri_lower:
+            return '$disconnect'
+        elif 'message' in uri_lower or 'default' in uri_lower:
+            return '$default'
+        
+        return None
+
     def aws_apigatewayv2_integration(self, resource):
         """
         Retrieves the AWS API Gateway V2 Integration identifier after validating its existence.
+        
+        For WebSocket APIs without an integration_id, uses the integration_uri to determine
+        the route type (connect, disconnect, or message/default) and finds the matching integration.
         
         Args:
             resource (dict): The resource block from Terraform.
@@ -795,6 +821,7 @@ class APIGatewayService(BaseAWSService):
         try:
             api_id = resource['change']['after'].get('api_id')
             integration_id = resource['change']['after'].get('id')
+            integration_uri = resource['change']['after'].get('integration_uri')
             
             if not api_id:
                 self.logger.error("Missing 'api_id' in resource data")
@@ -811,8 +838,28 @@ class APIGatewayService(BaseAWSService):
                 except v2_client.exceptions.NotFoundException:
                     self.logger.warning(f"API Gateway V2 Integration with ID '{integration_id}' not found.")
                     return None
+            
+            # Try to find integration by matching route key from integration_uri (for WebSocket APIs)
+            route_key = self._get_websocket_route_key_from_uri(integration_uri)
+            if route_key:
+                try:
+                    # Get all routes for the API and find the one matching the route key
+                    routes = v2_client.get_routes(ApiId=api_id)
+                    for route in routes.get('Items', []):
+                        if route.get('RouteKey') == route_key and route.get('Target'):
+                            # Target format is 'integrations/{integration_id}'
+                            target = route.get('Target', '')
+                            if target.startswith('integrations/'):
+                                found_integration_id = target.replace('integrations/', '')
+                                # Validate the integration exists
+                                v2_client.get_integration(ApiId=api_id, IntegrationId=found_integration_id)
+                                return f"{api_id}/{found_integration_id}"
+                    self.logger.warning(f"No integration found for route key '{route_key}' in API '{api_id}'.")
+                except botocore.exceptions.ClientError as e:
+                    self.logger.warning(f"Error retrieving API Gateway V2 Routes/Integrations: {e}")
+                    return None
             else:
-                # Get the first integration
+                # Fallback: get the first integration
                 try:
                     integrations = v2_client.get_integrations(ApiId=api_id)
                     if integrations.get('Items'):
@@ -846,6 +893,7 @@ class APIGatewayService(BaseAWSService):
             api_id = resource['change']['after'].get('api_id')
             integration_id = resource['change']['after'].get('integration_id')
             integration_response_id = resource['change']['after'].get('id')
+            integration_response_key = resource['change']['after'].get('integration_response_key')
             
             if not all([api_id, integration_id]):
                 self.logger.error("Missing required fields: 'api_id' or 'integration_id'")
@@ -866,17 +914,21 @@ class APIGatewayService(BaseAWSService):
                 except v2_client.exceptions.NotFoundException:
                     self.logger.warning(f"API Gateway V2 Integration Response with ID '{integration_response_id}' not found.")
                     return None
-            else:
-                # Get the first integration response
+            
+            if integration_response_key:
+                # Search by integration_response_key
                 try:
                     responses = v2_client.get_integration_responses(ApiId=api_id, IntegrationId=integration_id)
-                    if responses.get('Items'):
-                        first_response = responses['Items'][0]
-                        return f"{api_id}/{integration_id}/{first_response['IntegrationResponseId']}"
-                    self.logger.warning(f"No integration responses found for integration '{integration_id}'.")
+                    for response in responses.get('Items', []):
+                        if response.get('IntegrationResponseKey') == integration_response_key:
+                            return f"{api_id}/{integration_id}/{response['IntegrationResponseId']}"
+                    self.logger.warning(f"API Gateway V2 Integration Response with key '{integration_response_key}' not found.")
                 except botocore.exceptions.ClientError as e:
                     self.logger.warning(f"Error retrieving API Gateway V2 Integration Responses: {e}")
                     return None
+            else:
+                self.logger.error("Missing 'id' or 'integration_response_key' in resource data")
+                return None
                 
         except KeyError as e:
             self.logger.error(f"Missing expected key in resource: {e}")

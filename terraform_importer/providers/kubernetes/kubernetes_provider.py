@@ -37,7 +37,7 @@ class KubernetesProvider(BaseProvider):
         self.logger = logging.getLogger(__name__)
         
         # Initialize Kubernetes client
-        self.api_client = self._initialize_client(auth_config)
+        self.api_client = self._initialize_client(auth_config["expressions"])
         self.core_v1 = client.CoreV1Api(self.api_client)
         self.apps_v1 = client.AppsV1Api(self.api_client)
         self.networking_v1 = client.NetworkingV1Api(self.api_client)
@@ -81,21 +81,21 @@ class KubernetesProvider(BaseProvider):
             FileNotFoundError: If kubeconfig file is not found.
         """
         try:
-            expressions = auth_config.get("expressions", {})
-            in_cluster = expressions.get("in_cluster", False)
-            config_path = expressions.get("config_path")
-            context = expressions.get("context")
+            in_cluster = auth_config.get("in_cluster", False)
+            config_path = auth_config.get("config_path")
+            context = auth_config.get("config_context")
             
             if in_cluster:
                 # Use in-cluster configuration (when running inside a pod)
                 self.logger.info("Using in-cluster Kubernetes configuration")
                 config.load_incluster_config()
             elif config_path:
-                # Use explicit kubeconfig path
-                if not os.path.exists(config_path):
-                    raise FileNotFoundError(f"Kubeconfig file not found: {config_path}")
-                self.logger.info(f"Loading Kubernetes config from: {config_path}")
-                config.load_kube_config(config_file=config_path, context=context)
+                # Use explicit kubeconfig path - expand ~ to home directory
+                expanded_path = os.path.expanduser(config_path)
+                if not os.path.exists(expanded_path):
+                    raise FileNotFoundError(f"Kubeconfig file not found: {expanded_path}")
+                self.logger.info(f"Loading Kubernetes config from: {expanded_path}")
+                config.load_kube_config(config_file=expanded_path, context=context)
             else:
                 # Use default kubeconfig location (~/.kube/config)
                 self.logger.info("Using default Kubernetes configuration")
@@ -118,7 +118,7 @@ class KubernetesProvider(BaseProvider):
             ConnectionError: If unable to connect to the cluster.
         """
         try:
-            self.core_v1.list_namespaces(limit=1)
+            self.core_v1.list_namespace(limit=1)
             self.logger.info("Successfully connected to Kubernetes cluster")
         except ApiException as e:
             self.logger.error(f"Failed to connect to Kubernetes cluster: {e}")
@@ -157,29 +157,74 @@ class KubernetesProvider(BaseProvider):
         """
         try:
             after = resource_block.get('change', {}).get('after', {})
-            metadata = after.get('metadata', {})
+            if not after:
+                # Try 'values' as fallback (used in some Terraform state formats)
+                after = resource_block.get('values', {})
+                if not after:
+                    self.logger.debug("No 'after' or 'values' field found in resource block")
+                    return None, 'default'
+            
+            metadata = after.get('metadata')
+            if metadata is None:
+                self.logger.debug("No 'metadata' field found in resource block")
+                return None, 'default'
             
             # Handle both object and list formats
             if isinstance(metadata, list):
                 # If metadata is a list, extract from items
+                # Format: [{"name": "name", "value": "my-resource"}, {"name": "namespace", "value": "default"}]
+                if not metadata:
+                    self.logger.debug("Metadata list is empty")
+                    return None, 'default'
+                
+                # Check if first item is a dict with direct metadata fields (not key-value pairs)
+                if len(metadata) == 1 and isinstance(metadata[0], dict) and 'name' in metadata[0]:
+                    # Format: [{"name": "my-resource", "namespace": "default"}]
+                    return metadata[0].get('name'), metadata[0].get('namespace', 'default')
+                
+                # Otherwise, treat as key-value pair format
                 name = None
                 namespace = 'default'
                 for item in metadata:
                     if isinstance(item, dict):
+                        # Check if this is a key-value pair format
                         if item.get('name') == 'name':
                             name = item.get('value')
                         elif item.get('name') == 'namespace':
                             namespace = item.get('value', 'default')
+                
+                if name is None and metadata:
+                    self.logger.debug(f"Metadata list has {len(metadata)} items but no 'name' field found")
+                
                 return name, namespace
             elif isinstance(metadata, dict):
                 # If metadata is a dict, extract directly
+                # Format: {"name": "my-resource", "namespace": "default"}
                 name = metadata.get('name')
                 namespace = metadata.get('namespace', 'default')
+                
+                # Handle empty metadata dict
+                if not metadata:
+                    self.logger.debug("Metadata dict is empty")
+                    return None, 'default'
+                
+                # If name is still None, try nested structures
+                if name is None:
+                    # Check if there's a nested structure like metadata[0].name
+                    if len(metadata) == 1 and isinstance(list(metadata.values())[0], dict):
+                        nested = list(metadata.values())[0]
+                        name = nested.get('name')
+                        namespace = nested.get('namespace', 'default')
+                    # Check if metadata has other keys that might indicate a different structure
+                    elif metadata:
+                        self.logger.debug(f"Metadata dict has keys but no 'name': {list(metadata.keys())}")
+                
                 return name, namespace
             else:
+                self.logger.debug(f"Metadata is neither list nor dict: {type(metadata)}")
                 return None, 'default'
         except Exception as e:
-            self.logger.error(f"Error extracting metadata: {e}")
+            self.logger.warning(f"Error extracting metadata: {e}")
             return None, 'default'
     
     def kubernetes_namespace(self, resource_block: Dict[str, Any]) -> Optional[str]:
@@ -196,7 +241,7 @@ class KubernetesProvider(BaseProvider):
             namespace_name, _ = self._extract_metadata(resource_block)
             
             if not namespace_name:
-                self.logger.error("Missing 'name' in namespace metadata")
+                self.logger.warning("Missing 'name' in namespace metadata")
                 return None
             
             # Verify namespace exists
@@ -205,13 +250,13 @@ class KubernetesProvider(BaseProvider):
                 return namespace_name
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Namespace '{namespace_name}' not found")
+                    self.logger.warning(f"Namespace '{namespace_name}' not found")
                 else:
                     self.logger.error(f"Error retrieving namespace '{namespace_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving namespace: {e}")
         
@@ -231,7 +276,7 @@ class KubernetesProvider(BaseProvider):
             pod_name, namespace = self._extract_metadata(resource_block)
             
             if not pod_name:
-                self.logger.error("Missing 'name' in pod metadata")
+                self.logger.warning("Missing 'name' in pod metadata")
                 return None
             
             # Verify pod exists
@@ -240,13 +285,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{pod_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Pod '{pod_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Pod '{pod_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving pod '{pod_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving pod: {e}")
         
@@ -266,7 +311,7 @@ class KubernetesProvider(BaseProvider):
             deployment_name, namespace = self._extract_metadata(resource_block)
             
             if not deployment_name:
-                self.logger.error("Missing 'name' in deployment metadata")
+                self.logger.warning("Missing 'name' in deployment metadata")
                 return None
             
             # Verify deployment exists
@@ -275,13 +320,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{deployment_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Deployment '{deployment_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Deployment '{deployment_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving deployment '{deployment_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving deployment: {e}")
         
@@ -301,7 +346,7 @@ class KubernetesProvider(BaseProvider):
             service_name, namespace = self._extract_metadata(resource_block)
             
             if not service_name:
-                self.logger.error("Missing 'name' in service metadata")
+                self.logger.warning("Missing 'name' in service metadata")
                 return None
             
             # Verify service exists
@@ -310,13 +355,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{service_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Service '{service_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Service '{service_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving service '{service_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving service: {e}")
         
@@ -336,7 +381,7 @@ class KubernetesProvider(BaseProvider):
             config_map_name, namespace = self._extract_metadata(resource_block)
             
             if not config_map_name:
-                self.logger.error("Missing 'name' in ConfigMap metadata")
+                self.logger.warning("Missing 'name' in ConfigMap metadata")
                 return None
             
             # Verify ConfigMap exists
@@ -345,13 +390,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{config_map_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"ConfigMap '{config_map_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"ConfigMap '{config_map_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving ConfigMap '{config_map_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving ConfigMap: {e}")
         
@@ -371,7 +416,7 @@ class KubernetesProvider(BaseProvider):
             secret_name, namespace = self._extract_metadata(resource_block)
             
             if not secret_name:
-                self.logger.error("Missing 'name' in Secret metadata")
+                self.logger.warning("Missing 'name' in Secret metadata")
                 return None
             
             # Verify Secret exists
@@ -380,13 +425,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{secret_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Secret '{secret_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Secret '{secret_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving Secret '{secret_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving Secret: {e}")
         
@@ -406,7 +451,7 @@ class KubernetesProvider(BaseProvider):
             pvc_name, namespace = self._extract_metadata(resource_block)
             
             if not pvc_name:
-                self.logger.error("Missing 'name' in PersistentVolumeClaim metadata")
+                self.logger.warning("Missing 'name' in PersistentVolumeClaim metadata")
                 return None
             
             # Verify PVC exists
@@ -415,13 +460,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{pvc_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"PersistentVolumeClaim '{pvc_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"PersistentVolumeClaim '{pvc_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving PersistentVolumeClaim '{pvc_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving PersistentVolumeClaim: {e}")
         
@@ -441,7 +486,7 @@ class KubernetesProvider(BaseProvider):
             stateful_set_name, namespace = self._extract_metadata(resource_block)
             
             if not stateful_set_name:
-                self.logger.error("Missing 'name' in StatefulSet metadata")
+                self.logger.warning("Missing 'name' in StatefulSet metadata")
                 return None
             
             # Verify StatefulSet exists
@@ -450,13 +495,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{stateful_set_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"StatefulSet '{stateful_set_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"StatefulSet '{stateful_set_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving StatefulSet '{stateful_set_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving StatefulSet: {e}")
         
@@ -476,7 +521,7 @@ class KubernetesProvider(BaseProvider):
             daemon_set_name, namespace = self._extract_metadata(resource_block)
             
             if not daemon_set_name:
-                self.logger.error("Missing 'name' in DaemonSet metadata")
+                self.logger.warning("Missing 'name' in DaemonSet metadata")
                 return None
             
             # Verify DaemonSet exists
@@ -485,13 +530,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{daemon_set_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"DaemonSet '{daemon_set_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"DaemonSet '{daemon_set_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving DaemonSet '{daemon_set_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving DaemonSet: {e}")
         
@@ -511,7 +556,7 @@ class KubernetesProvider(BaseProvider):
             ingress_name, namespace = self._extract_metadata(resource_block)
             
             if not ingress_name:
-                self.logger.error("Missing 'name' in Ingress metadata")
+                self.logger.warning("Missing 'name' in Ingress metadata")
                 return None
             
             # Verify Ingress exists
@@ -520,13 +565,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{ingress_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Ingress '{ingress_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Ingress '{ingress_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving Ingress '{ingress_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving Ingress: {e}")
         
@@ -546,7 +591,7 @@ class KubernetesProvider(BaseProvider):
             service_account_name, namespace = self._extract_metadata(resource_block)
             
             if not service_account_name:
-                self.logger.error("Missing 'name' in ServiceAccount metadata")
+                self.logger.warning("Missing 'name' in ServiceAccount metadata")
                 return None
             
             # Verify ServiceAccount exists
@@ -555,13 +600,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{service_account_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"ServiceAccount '{service_account_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"ServiceAccount '{service_account_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving ServiceAccount '{service_account_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving ServiceAccount: {e}")
         
@@ -581,7 +626,7 @@ class KubernetesProvider(BaseProvider):
             role_name, namespace = self._extract_metadata(resource_block)
             
             if not role_name:
-                self.logger.error("Missing 'name' in Role metadata")
+                self.logger.warning("Missing 'name' in Role metadata")
                 return None
             
             # Verify Role exists
@@ -590,13 +635,13 @@ class KubernetesProvider(BaseProvider):
                 return f"{namespace}/{role_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"Role '{role_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"Role '{role_name}' not found in namespace '{namespace}'")
                 else:
                     self.logger.error(f"Error retrieving Role '{role_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving Role: {e}")
         
@@ -616,24 +661,39 @@ class KubernetesProvider(BaseProvider):
             role_binding_name, namespace = self._extract_metadata(resource_block)
             
             if not role_binding_name:
-                self.logger.error("Missing 'name' in RoleBinding metadata")
+                self.logger.warning("Missing 'name' in RoleBinding metadata")
+                self.logger.debug(f"Resource block structure: {resource_block}")
                 return None
+            
+            self.logger.debug(f"Looking for RoleBinding '{role_binding_name}' in namespace '{namespace}'")
             
             # Verify RoleBinding exists
             try:
                 self.rbac_authorization_v1.read_namespaced_role_binding(name=role_binding_name, namespace=namespace)
+                self.logger.info(f"Found RoleBinding '{role_binding_name}' in namespace '{namespace}'")
                 return f"{namespace}/{role_binding_name}"
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"RoleBinding '{role_binding_name}' not found in namespace '{namespace}'")
+                    self.logger.warning(f"RoleBinding '{role_binding_name}' not found in namespace '{namespace}'")
+                    # Try to list RoleBindings in the namespace to help debug
+                    try:
+                        role_bindings = self.rbac_authorization_v1.list_namespaced_role_binding(namespace=namespace)
+                        existing_names = [rb.metadata.name for rb in role_bindings.items]
+                        self.logger.debug(f"Existing RoleBindings in namespace '{namespace}': {existing_names}")
+                        if role_binding_name in existing_names:
+                            self.logger.warning(f"RoleBinding name found in list but read failed - possible permissions issue")
+                    except Exception as list_error:
+                        self.logger.debug(f"Could not list RoleBindings for debugging: {list_error}")
                 else:
                     self.logger.error(f"Error retrieving RoleBinding '{role_binding_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
+            self.logger.debug(f"Resource block structure: {resource_block}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving RoleBinding: {e}")
+            self.logger.debug(f"Resource block structure: {resource_block}", exc_info=True)
         
         return None
     
@@ -651,7 +711,7 @@ class KubernetesProvider(BaseProvider):
             cluster_role_name, _ = self._extract_metadata(resource_block)
             
             if not cluster_role_name:
-                self.logger.error("Missing 'name' in ClusterRole metadata")
+                self.logger.warning("Missing 'name' in ClusterRole metadata")
                 return None
             
             # Verify ClusterRole exists
@@ -660,13 +720,13 @@ class KubernetesProvider(BaseProvider):
                 return cluster_role_name
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"ClusterRole '{cluster_role_name}' not found")
+                    self.logger.warning(f"ClusterRole '{cluster_role_name}' not found")
                 else:
                     self.logger.error(f"Error retrieving ClusterRole '{cluster_role_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving ClusterRole: {e}")
         
@@ -686,7 +746,7 @@ class KubernetesProvider(BaseProvider):
             cluster_role_binding_name, _ = self._extract_metadata(resource_block)
             
             if not cluster_role_binding_name:
-                self.logger.error("Missing 'name' in ClusterRoleBinding metadata")
+                self.logger.warning("Missing 'name' in ClusterRoleBinding metadata")
                 return None
             
             # Verify ClusterRoleBinding exists
@@ -695,13 +755,13 @@ class KubernetesProvider(BaseProvider):
                 return cluster_role_binding_name
             except ApiException as e:
                 if e.status == 404:
-                    self.logger.error(f"ClusterRoleBinding '{cluster_role_binding_name}' not found")
+                    self.logger.warning(f"ClusterRoleBinding '{cluster_role_binding_name}' not found")
                 else:
                     self.logger.error(f"Error retrieving ClusterRoleBinding '{cluster_role_binding_name}': {e}")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error retrieving ClusterRoleBinding: {e}")
         

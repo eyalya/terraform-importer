@@ -990,6 +990,122 @@ class TestAPIGatewayService(unittest.TestCase):
         
         self.assertIsNone(result)
 
+    def test_aws_apigatewayv2_integration_websocket_connect(self):
+        """Test aws_apigatewayv2_integration with WebSocket connect integration_uri"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_uri": "https://example.com/websocket/connect"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [
+                {"RouteKey": "$connect", "RouteId": "route123", "Target": "integrations/int456"},
+                {"RouteKey": "$disconnect", "RouteId": "route789", "Target": "integrations/int999"}
+            ]
+        }
+        self.mock_client.get_integration.return_value = {"IntegrationId": "int456"}
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertEqual(result, "api123/int456")
+
+    def test_aws_apigatewayv2_integration_websocket_disconnect(self):
+        """Test aws_apigatewayv2_integration with WebSocket disconnect integration_uri"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_uri": "https://example.com/websocket/disconnect"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [
+                {"RouteKey": "$connect", "RouteId": "route123", "Target": "integrations/int456"},
+                {"RouteKey": "$disconnect", "RouteId": "route789", "Target": "integrations/int999"}
+            ]
+        }
+        self.mock_client.get_integration.return_value = {"IntegrationId": "int999"}
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertEqual(result, "api123/int999")
+
+    def test_aws_apigatewayv2_integration_websocket_message(self):
+        """Test aws_apigatewayv2_integration with WebSocket message integration_uri"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_uri": "https://example.com/websocket/message"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [
+                {"RouteKey": "$connect", "RouteId": "route123", "Target": "integrations/int456"},
+                {"RouteKey": "$default", "RouteId": "route555", "Target": "integrations/int777"}
+            ]
+        }
+        self.mock_client.get_integration.return_value = {"IntegrationId": "int777"}
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertEqual(result, "api123/int777")
+
+    def test_aws_apigatewayv2_integration_websocket_route_not_found(self):
+        """Test aws_apigatewayv2_integration when WebSocket route doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_uri": "https://example.com/websocket/connect"
+                }
+            }
+        }
+        self.mock_client.get_routes.return_value = {
+            "Items": [
+                {"RouteKey": "$disconnect", "RouteId": "route789", "Target": "integrations/int999"}
+            ]
+        }
+        
+        result = self.service.aws_apigatewayv2_integration(resource)
+        
+        self.assertIsNone(result)
+
+    def test_get_websocket_route_key_from_uri_connect(self):
+        """Test _get_websocket_route_key_from_uri with connect URI"""
+        result = self.service._get_websocket_route_key_from_uri("https://example.com/websocket/connect")
+        self.assertEqual(result, "$connect")
+
+    def test_get_websocket_route_key_from_uri_disconnect(self):
+        """Test _get_websocket_route_key_from_uri with disconnect URI"""
+        result = self.service._get_websocket_route_key_from_uri("https://example.com/websocket/disconnect")
+        self.assertEqual(result, "$disconnect")
+
+    def test_get_websocket_route_key_from_uri_message(self):
+        """Test _get_websocket_route_key_from_uri with message URI"""
+        result = self.service._get_websocket_route_key_from_uri("https://example.com/websocket/message")
+        self.assertEqual(result, "$default")
+
+    def test_get_websocket_route_key_from_uri_default(self):
+        """Test _get_websocket_route_key_from_uri with default URI"""
+        result = self.service._get_websocket_route_key_from_uri("https://example.com/websocket/default")
+        self.assertEqual(result, "$default")
+
+    def test_get_websocket_route_key_from_uri_none(self):
+        """Test _get_websocket_route_key_from_uri with None"""
+        result = self.service._get_websocket_route_key_from_uri(None)
+        self.assertIsNone(result)
+
+    def test_get_websocket_route_key_from_uri_unknown(self):
+        """Test _get_websocket_route_key_from_uri with unknown URI"""
+        result = self.service._get_websocket_route_key_from_uri("https://example.com/api/endpoint")
+        self.assertIsNone(result)
+
     # Tests for aws_apigatewayv2_integration_response
     def test_aws_apigatewayv2_integration_response_by_id(self):
         """Test aws_apigatewayv2_integration_response with ID"""
@@ -1010,18 +1126,22 @@ class TestAPIGatewayService(unittest.TestCase):
         
         self.assertEqual(result, "api123/int456/resp789")
 
-    def test_aws_apigatewayv2_integration_response_first_response(self):
-        """Test aws_apigatewayv2_integration_response without ID (gets first)"""
+    def test_aws_apigatewayv2_integration_response_by_key(self):
+        """Test aws_apigatewayv2_integration_response with integration_response_key"""
         resource = {
             "change": {
                 "after": {
                     "api_id": "api123",
-                    "integration_id": "int456"
+                    "integration_id": "int456",
+                    "integration_response_key": "/200"
                 }
             }
         }
         self.mock_client.get_integration_responses.return_value = {
-            "Items": [{"IntegrationResponseId": "resp789"}]
+            "Items": [
+                {"IntegrationResponseId": "resp111", "IntegrationResponseKey": "/default"},
+                {"IntegrationResponseId": "resp789", "IntegrationResponseKey": "/200"}
+            ]
         }
         
         result = self.service.aws_apigatewayv2_integration_response(resource)
@@ -1059,8 +1179,29 @@ class TestAPIGatewayService(unittest.TestCase):
         
         self.assertIsNone(result)
 
-    def test_aws_apigatewayv2_integration_response_no_responses(self):
-        """Test aws_apigatewayv2_integration_response when no responses exist"""
+    def test_aws_apigatewayv2_integration_response_key_not_found(self):
+        """Test aws_apigatewayv2_integration_response when key doesn't exist"""
+        resource = {
+            "change": {
+                "after": {
+                    "api_id": "api123",
+                    "integration_id": "int456",
+                    "integration_response_key": "/404"
+                }
+            }
+        }
+        self.mock_client.get_integration_responses.return_value = {
+            "Items": [
+                {"IntegrationResponseId": "resp111", "IntegrationResponseKey": "/200"}
+            ]
+        }
+        
+        result = self.service.aws_apigatewayv2_integration_response(resource)
+        
+        self.assertIsNone(result)
+
+    def test_aws_apigatewayv2_integration_response_missing_id_and_key(self):
+        """Test aws_apigatewayv2_integration_response when neither id nor key provided"""
         resource = {
             "change": {
                 "after": {
@@ -1068,9 +1209,6 @@ class TestAPIGatewayService(unittest.TestCase):
                     "integration_id": "int456"
                 }
             }
-        }
-        self.mock_client.get_integration_responses.return_value = {
-            "Items": []
         }
         
         result = self.service.aws_apigatewayv2_integration_response(resource)

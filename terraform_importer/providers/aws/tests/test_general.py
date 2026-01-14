@@ -13,7 +13,6 @@ class TestGENERALService(unittest.TestCase):
         self.mock_acm_client = MagicMock()
         self.mock_cloudfront_client = MagicMock()
         self.mock_codebuild_client = MagicMock()
-        self.mock_ecr_client = MagicMock()
         self.mock_route53_client = MagicMock()
         self.mock_elasticbeanstalk_client = MagicMock()
         self.mock_elasticache_client = MagicMock()
@@ -25,7 +24,6 @@ class TestGENERALService(unittest.TestCase):
                 "acm": self.mock_acm_client,
                 "cloudfront": self.mock_cloudfront_client,
                 "codebuild": self.mock_codebuild_client,
-                "ecr": self.mock_ecr_client,
                 "route53": self.mock_route53_client,
                 "elasticbeanstalk": self.mock_elasticbeanstalk_client,
                 "elasticache": self.mock_elasticache_client
@@ -35,7 +33,6 @@ class TestGENERALService(unittest.TestCase):
         self.mock_session.client.side_effect = client_side_effect
         self.service = GENERALService(self.mock_session)
         # Add missing clients that are used but not initialized
-        self.service.ecr_client = self.mock_ecr_client
         self.service.route53_client = self.mock_route53_client
         self.service.elasticbeanstalk_client = self.mock_elasticbeanstalk_client
         self.service.elasticache_client = self.mock_elasticache_client
@@ -54,7 +51,6 @@ class TestGENERALService(unittest.TestCase):
         """Test get_resource_list returns correct resources"""
         resources = self.service.get_resource_list()
         expected_resources = [
-            "aws_ecr_repository",
             "aws_sqs_queue",
             "aws_sns_topic",
             "aws_route53_record",
@@ -67,40 +63,6 @@ class TestGENERALService(unittest.TestCase):
             "aws_codebuild_source_credential"
         ]
         self.assertEqual(resources, expected_resources)
-
-    def test_aws_ecr_repository_success(self):
-        """Test aws_ecr_repository with successful response"""
-        resource = {
-            "change": {
-                "after": {
-                    "name": "test-repo"
-                }
-            }
-        }
-        self.mock_ecr_client.describe_repositories.return_value = {
-            "repositories": [{"repositoryName": "test-repo"}]
-        }
-        
-        result = self.service.aws_ecr_repository(resource)
-        
-        self.assertEqual(result, "test-repo")
-
-    def test_aws_ecr_repository_not_found(self):
-        """Test aws_ecr_repository when repository doesn't exist"""
-        resource = {
-            "change": {
-                "after": {
-                    "name": "test-repo"
-                }
-            }
-        }
-        self.mock_ecr_client.describe_repositories.side_effect = botocore.exceptions.ClientError(
-            {"Error": {"Code": "RepositoryNotFoundException"}}, "DescribeRepositories"
-        )
-        
-        result = self.service.aws_ecr_repository(resource)
-        
-        self.assertIsNone(result)
 
     def test_aws_sqs_queue_success(self):
         """Test aws_sqs_queue with successful response"""

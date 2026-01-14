@@ -18,7 +18,6 @@ class GENERALService(BaseAWSService):
         self.cloudfront_client = self.get_client("cloudfront")
         self.codebuild_client = self.get_client("codebuild")
         self._resources = [
-            "aws_ecr_repository",
             "aws_sqs_queue",
             "aws_sns_topic",
             "aws_route53_record",
@@ -39,50 +38,6 @@ class GENERALService(BaseAWSService):
         """
         # Return a copy to prevent external modification
         return self._resources.copy()
-
-
-    def aws_ecr_repository(self, resource):
-        """
-        Validates if the AWS ECR repository exists and returns its name.
-    
-        Args:
-            resource (dict): The Terraform resource block.
-    
-        Returns:
-            str: The ECR repository name if it exists, otherwise None.
-        """
-        try:
-            # Extract repository name
-            repository_name = resource['change']['after'].get('name')
-    
-            if not repository_name:
-                self.logger.error("ECR repository name is missing in the resource data.")
-                return None
-    
-            # Check if the repository exists
-            response = self.ecr_client.describe_repositories(repositoryNames=[repository_name])
-    
-            # If the repository exists, return its name
-            if response.get('repositories'):
-                return repository_name
-    
-            self.logger.error(f"ECR repository '{repository_name}' not found.")
-            return None
-    
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == 'RepositoryNotFoundException':
-                self.logger.error(f"ECR repository '{repository_name}' does not exist.")
-            else:
-                self.logger.error(f"AWS ClientError while validating ECR repository: {e}")
-        except botocore.exceptions.BotoCoreError as e:
-            self.logger.error(f"AWS BotoCoreError: {e}")
-        except KeyError as e:
-            self.logger.error(f"Missing key in resource data: {e}")
-        except Exception as e:
-            self.logger.error(f"Unexpected error occurred: {e}")
-    
-        return None
-    
 
     def aws_sqs_queue(self, resource):
         """

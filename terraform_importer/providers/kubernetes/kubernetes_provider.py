@@ -85,6 +85,25 @@ class KubernetesProvider(BaseProvider):
             config_path = auth_config.get("config_path")
             context = auth_config.get("config_context")
             
+            # Validate context is a string or None
+            if context is not None and not isinstance(context, str):
+                self.logger.warning(
+                    f"Invalid Kubernetes context type: expected string or None, got {type(context).__name__}. "
+                    f"Context value: {context}. Using None instead. "
+                    f"Please ensure 'config_context' is explicitly set to a string value (e.g., "
+                    f"'arn:aws:eks:us-east-1:********:cluster/cluster-name') or null."
+                )
+                context = None
+            
+            # Validate config_path is a string or None
+            if config_path is not None and not isinstance(config_path, str):
+                self.logger.warning(
+                    f"Invalid Kubernetes config_path type: expected string or None, got {type(config_path).__name__}. "
+                    f"Config path value: {config_path}. Using None instead. "
+                    f"Please ensure 'config_path' is explicitly set to a string value (e.g., '/Users/***/.kube/config') or null."
+                )
+                config_path = None
+            
             if in_cluster:
                 # Use in-cluster configuration (when running inside a pod)
                 self.logger.info("Using in-cluster Kubernetes configuration")
@@ -104,10 +123,15 @@ class KubernetesProvider(BaseProvider):
             return client.ApiClient()
             
         except config.ConfigException as e:
-            self.logger.error(f"Failed to load Kubernetes configuration: {e}")
+            self.logger.warning(
+                f"Failed to load Kubernetes configuration: {e}. "
+                f"This may be due to invalid context or config_path values. "
+                f"Please ensure 'config_context' is a string (e.g., 'arn:aws:eks:us-east-1:********:cluster/cluster-name') "
+                f"and 'config_path' is a string (e.g., '/Users/***/.kube/config')."
+            )
             raise ValueError(f"Invalid Kubernetes configuration: {e}")
         except Exception as e:
-            self.logger.error(f"Unexpected error initializing Kubernetes client: {e}")
+            self.logger.warning(f"Unexpected error initializing Kubernetes client: {e}")
             raise
     
     def _verify_connection(self) -> None:

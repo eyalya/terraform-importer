@@ -46,7 +46,14 @@ class ProvidersHandler:
             provider_full_name = provider_data.get("full_name")
             if provider_full_name in self.providers_full_names and "expressions" in provider_data:
                 provider_class = self.providers_full_names[provider_full_name]
-                providers[provider_name] = provider_class(provider_data, provider_name)
+                try:
+                    providers[provider_name] = provider_class(provider_data, provider_name)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Failed to initialize provider '{provider_name}' ({provider_full_name}): {e}. "
+                        f"Skipping this provider. The tool will continue without it."
+                    )
+                    providers[provider_name] = None
             else:
                 self.logger.warning(f"Unhandled provider type: {provider_full_name}")
                 providers[provider_name] = None

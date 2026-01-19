@@ -1,0 +1,152 @@
+# Terraform Importer - Cursor Rules
+
+## Project Overview
+This is a Python-based tool for analyzing Terraform configurations and generating resource import blocks dynamically. It helps DevOps engineers import existing cloud resources into Terraform state.
+
+## Code Style & Conventions
+
+### Python Guidelines
+- Follow PEP 8
+- Use meaningful variable names
+- Write docstrings for all public methods and classes
+- Keep functions focused and small
+- Use type hints where appropriate
+- End all files with a newline
+
+### Git Commit Messages
+- Use the present tense ("Add feature" not "Added feature")
+- Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
+- Limit the first line to 72 characters or less
+- Reference issues and pull requests after the first line
+
+## Logging Conventions
+
+### Log Levels
+Use the appropriate log level based on the following guidelines:
+
+- **ERROR**: Only for actual system errors and unexpected exceptions
+  - System failures (file I/O errors, network failures)
+  - Unexpected exceptions that break normal flow
+  - Critical configuration errors
+  - Example: `self.logger.error(f"Failed to write import blocks: {e}")`
+
+- **WARNING**: For provider-level issues that are expected but need attention
+  - Resource not found in cloud provider
+  - Provider not configured or unavailable
+  - Missing optional configuration
+  - API rate limiting or temporary failures
+  - Example: `self.logger.warning(f"Resource '{name}' not found in AWS")`
+
+- **INFO**: For general operational information
+  - Starting/completing operations
+  - Successfully found resources
+  - Configuration loaded
+  - Example: `self.logger.info(f"Processing resource type: {resource_type}")`
+
+- **DEBUG**: For detailed troubleshooting information
+  - API request/response details
+  - Internal state changes
+  - Variable values during processing
+
+## Testing Requirements
+
+### Mandatory Tests
+- ALL new services MUST have corresponding test files
+- ALL new resource handlers MUST have unit tests
+- Tests should cover success cases, not found cases, and error handling
+
+### Test File Location
+- AWS services: `terraform_importer/providers/aws/tests/test_<service>.py`
+- Other providers: `terraform_importer/providers/<provider>/tests/test_<module>.py`
+- General tests: `tests/test_<module>.py`
+
+### Test Structure
+```python
+import unittest
+from unittest.mock import Mock, MagicMock, patch
+import boto3  # or relevant SDK
+from terraform_importer.providers.<provider>.<service> import <ServiceClass>
+
+class Test<ServiceClass>(unittest.TestCase):
+    def setUp(self):
+        # Setup mock session and clients
+        pass
+
+    def test_<method>_success(self):
+        """Test <method> with successful response"""
+        pass
+
+    def test_<method>_not_found(self):
+        """Test <method> when resource doesn't exist"""
+        pass
+
+    def test_<method>_error_handling(self):
+        """Test <method> error handling"""
+        pass
+```
+
+## Provider Service Pattern
+
+### New AWS Service Structure
+When creating a new AWS service handler:
+
+1. Create the service file in `terraform_importer/providers/aws/aws_services/<service>.py`
+2. Inherit from `BaseAWSService`
+3. Define `_resources` list with supported resource types
+4. Implement `get_resource_list()` method
+5. Implement individual resource handlers named after resource types
+6. Create corresponding test file
+
+```python
+from typing import List, Optional, Dict
+import boto3
+import botocore.exceptions
+import logging
+from terraform_importer.providers.aws.aws_services.base import BaseAWSService
+
+class <Service>Service(BaseAWSService):
+    def __init__(self, session: boto3.Session):
+        super().__init__(session)
+        self.logger = logging.getLogger(__name__)
+        self.client = self.get_client("<service_name>")
+        self._resources = ["aws_<resource_type>"]
+
+    def get_resource_list(self) -> List[str]:
+        return self._resources.copy()
+
+    def aws_<resource_type>(self, resource):
+        """Retrieves the AWS resource ID after validating existence."""
+        try:
+            # Extract values from resource block
+            # Validate resource exists in AWS
+            # Return ID or None
+        except KeyError as e:
+            self.logger.warning(f"Missing expected key in resource: {e}")
+        except botocore.exceptions.ClientError as e:
+            self.logger.warning(f"AWS ClientError: {e}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error occurred: {e}")
+        return None
+```
+
+## Pull Request Guidelines
+
+### Before Creating PR
+- Run all tests: `python3 -m unittest tests`
+- Ensure no linting errors
+- Update documentation if needed
+- Add tests for new functionality
+
+### PR Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-reviewed the code
+- [ ] Added comments for complex logic
+- [ ] Updated documentation
+- [ ] No new warnings generated
+- [ ] Added tests that prove the fix/feature works
+- [ ] All unit tests pass locally
+
+## File References
+- Contributing guidelines: `CONTRIBUTING.md`
+- PR template: `.github/pull_request_template.md`
+- Code of conduct: `CODE_OF_CONDUCT.md`

@@ -69,7 +69,7 @@ class TerraformHandler:
 
             # self.logger.info(f"Command output:\n{result.stdout}")
             if result.stderr:
-                self.logger.error(f"Command errors:\n{result.stderr}")
+                self.logger.warning(f"Command stderr:\n{result.stderr}")
 
             return result.stdout, result.stderr, result.returncode
         except Exception as e:

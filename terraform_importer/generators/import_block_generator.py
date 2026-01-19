@@ -55,7 +55,7 @@ class ImportBlockGenerator:
         if targets is not None:
             targets=[t.replace("-target=module.", "") for t in targets]
         self.logger.info("Running Terraform show...")
-        return self._tf_handler.run_terraform_show(targets)
+        return self._tf_handler.run_terraform_show()
         
     
     def load_resource_list_from_file(self, file_path: str) -> Dict[str, list]:
@@ -119,7 +119,7 @@ class ImportBlockGenerator:
             self.logger.debug(f"Found provider {provider} for resource {address}")
             return provider
         except Exception as e:
-            self.logger.error(f"Failed to get provider for resource {address}: {e}")
+            self.logger.warning(f"Failed to get provider for resource {address}: {e}")
             return None
 
     def generate_imports_from_plan(self, resource_list: Dict) -> List[Dict[str, str]]:

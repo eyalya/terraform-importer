@@ -130,8 +130,8 @@ class BitbucketDfraustProvider(BaseProvider):
                 if item.get("key") == variable:
                     return item["uuid"]
         except KeyError: ##TODO: fix for better exception
-            self.logger.error(f"Response dont have values and has:")
-            self.logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
+            self.logger.warning(f"Response doesn't have values and has:")
+            self.logger.warning(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
 
     def list_deployment_variables_uuid(
@@ -167,10 +167,10 @@ class BitbucketDfraustProvider(BaseProvider):
                self.logger.debug("Get Variables")
                resp_json = response.json()
             else:
-                self.logger.error(f"Request failed: {response.status_code} - {response.reason}")
+                self.logger.warning(f"Request failed: {response.status_code} - {response.reason}")
                 return None, None
         except requests.RequestException as e:
-            self.logger.error(f"Request failed: {e}")
+            self.logger.warning(f"Request failed: {e}")
         
         self.logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
         return resp_json, url
@@ -201,10 +201,10 @@ class BitbucketDfraustProvider(BaseProvider):
                self.logger.debug("Get Variables")
                resp_json = response.json()
             else:
-                self.logger.error(f"Request failed: {response.status_code} - {response.reason}")
+                self.logger.warning(f"Request failed: {response.status_code} - {response.reason}")
                 return None
         except requests.RequestException as e:
-            self.logger.error(f"Request failed: {e}")
+            self.logger.warning(f"Request failed: {e}")
         
         if 'resp_json' in locals():
             self.logger.debug(json.dumps(resp_json, sort_keys=True, indent=4, separators=(",", ": ")))
@@ -217,8 +217,8 @@ class BitbucketDfraustProvider(BaseProvider):
                     if item.get("slug") == deployment:
                         return item["uuid"]
             except KeyError:
-                self.logger.error(f"Response dont have values and has:")
-                self.logger.error(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
+                self.logger.warning(f"Response doesn't have values and has:")
+                self.logger.warning(json.dumps(json.loads(envs), sort_keys=True, indent=4, separators=(",", ": ")))
         return None
 
     def bitbucket_deployment(self, resource_block: Dict[str, Any]) -> str:

@@ -1,8 +1,9 @@
 from typing import List, Optional, Dict
 from terraform_importer.providers.base_provider import BaseProvider
-from terraform_importer.providers.aws_provider import AWSProvider
-from terraform_importer.providers.bitbucket_provider import BitbucketDfraustProvider
-# from terraform_importer.providers.gcp_provider import GCPProvider
+from terraform_importer.providers.aws.aws_provider import AWSProvider
+from terraform_importer.providers.bitbucket.bitbucket_provider import BitbucketDfraustProvider
+from terraform_importer.providers.kubernetes.kubernetes_provider import KubernetesProvider
+# from terraform_importer.providers.gcp.gcp_provider import GCPProvider
 from terraform_importer.handlers.json_config_handler import JsonConfigHandler
 import logging
 
@@ -12,6 +13,7 @@ class ProvidersHandler:
     providers_full_names = {
         "registry.terraform.io/hashicorp/aws": AWSProvider,
         "registry.terraform.io/drfaust92/bitbucket": BitbucketDfraustProvider,
+        "registry.terraform.io/hashicorp/kubernetes": KubernetesProvider,
         # "registry.terraform.io/hashicorp/gcp": GCPProvider
     }
     

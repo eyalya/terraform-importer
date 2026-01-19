@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - None
 
+## [2.0.1] - 2026-01-XX
+### Fixed
+- Kubernetes provider now validates `config_context` and `config_path` are strings, preventing crashes when Terraform references are unresolved
+- Provider initialization failures are now non-fatal - tool continues execution with warnings instead of crashing
+- Improved error messages for Kubernetes provider configuration issues
+
+### Added
+- Kubernetes provider README documentation explaining configuration requirements
+
 ## [2.0.0] - 2026-01-19
 ### Added
 - AWS API Gateway WebSocket integration support
@@ -81,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AWS provider support
 - Basic CLI interface
 
-[Unreleased]: https://github.com/eyalya/terraform-importer/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/eyalya/terraform-importer/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/eyalya/terraform-importer/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/eyalya/terraform-importer/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/eyalya/terraform-importer/releases/tag/v1.0.0
 [0.1.0]: https://github.com/eyalya/terraform-importer/releases/tag/v0.1.0

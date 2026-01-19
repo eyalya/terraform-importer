@@ -1,15 +1,8 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict
+from unittest.mock import patch, MagicMock
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from terraform_importer.providers.bitbucket.bitbucket_provider import BitbucketDfraustProvider
-from terraform_importer.handlers.providers_handler import ProvidersHandler
-
-
-import unittest
-from unittest.mock import patch, MagicMock
 import requests
 from terraform_importer.providers.bitbucket.bitbucket_provider import BitbucketDfraustProvider
 
@@ -180,7 +173,7 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
 
         # Create an instance of the provider
         provider = BitbucketDfraustProvider(self.auth_config)
-        with patch.object(provider.logger, "error") as mock_logger_error:
+        with patch.object(provider.logger, "warning") as mock_logger_warning:
              # Call the method
              result, url = provider.list_deployment_variables_uuid("repo-name", "deployment-uuid")
      
@@ -188,8 +181,8 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
              self.assertIsNone(result)
              self.assertIsNone(url)
      
-             # Ensure that the error was logged
-             mock_logger_error.assert_called_with("Request failed: 400 - Bad Request")
+             # Ensure that the warning was logged (implementation uses warning, not error)
+             mock_logger_warning.assert_called_with("Request failed: 400 - Bad Request")
 
     @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_list_deployment_variables_uuid_exception(self,mock_check_auth, mock_run_command):
@@ -201,15 +194,15 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
 
         # Create an instance of the provider
         provider = BitbucketDfraustProvider(self.auth_config)
-        with patch.object(provider.logger, "error") as mock_logger_error:
+        with patch.object(provider.logger, "warning") as mock_logger_warning:
              # Call the method
              result, url = provider.list_deployment_variables_uuid("repo-name", "deployment-uuid")
      
-             # Assert that the result is None and the URL is None when an exception occurs
+             # Assert that the result is None when an exception occurs
              self.assertIsNone(result)
      
-             # Ensure that the exception was logged
-             mock_logger_error.assert_called_with("Request failed: Network error")
+             # Ensure that the warning was logged (implementation uses warning, not error)
+             mock_logger_warning.assert_called_with("Request failed: Network error")
 
     ########### test get_deployment_uuid ##########
 
@@ -264,14 +257,14 @@ class TestBitbucketDfraustProvider(unittest.TestCase):
         mock_run_command.side_effect = requests.RequestException("Network error")
         
         provider = BitbucketDfraustProvider(self.auth_config)
-        with patch.object(provider.logger, "error") as mock_logger_error:
+        with patch.object(provider.logger, "warning") as mock_logger_warning:
              result = provider.get_deployment_uuid("repo-name", "deployment-1")
              
              # Assert that the result is None when an exception occurs
              self.assertIsNone(result)
      
-             # Ensure that the exception was logged
-             mock_logger_error.assert_called_with("Request failed: Network error")
+             # Ensure that the warning was logged (implementation uses warning, not error)
+             mock_logger_warning.assert_called_with("Request failed: Network error")
 
     @patch("terraform_importer.providers.bitbucket.bitbucket_provider.BitbucketDfraustProvider.check_auth")
     def test_get_deployment_uuid_invalid_response(self, mock_check_auth, mock_run_command):

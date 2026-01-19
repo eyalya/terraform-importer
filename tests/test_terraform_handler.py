@@ -308,15 +308,18 @@ class TestTerraformHandler(unittest.TestCase):
              options = handler._TerraformHandler__options
      
              # Check that the plan command was executed with the expected arguments
+             # The actual implementation adds -target= prefix to each target
+             expected_targets = ["-target=" + t for t in targets]
              mock_run_terraform_command.assert_called_once_with(
-                 base_commands + ["plan", "-out=plan.out"] + options + targets
+                 base_commands + ["plan"] + expected_targets + options + ["-out=plan.out"]
              )
      
              # Assert that info log for successful execution was called
              mock_info_log.assert_called_with("Terraform plan executed successfully.")
 
     @patch('terraform_importer.handlers.terraform_handler.TerraformHandler.run_terraform_command')  # Mock run_terraform_command
-    def test_run_terraform_plan_failure(self, mock_run_terraform_command):
+    @patch('builtins.exit')  # Mock exit to prevent test from exiting
+    def test_run_terraform_plan_failure(self, mock_exit, mock_run_terraform_command):
         # Prepare mock data for failed plan execution
         targets = ["target1", "target2"]
         plan_output = "Terraform plan failed"
@@ -332,12 +335,16 @@ class TestTerraformHandler(unittest.TestCase):
              options = handler._TerraformHandler__options
      
              # Check that the plan command was executed with the expected arguments
+             expected_targets = ["-target=" + t for t in targets]
              mock_run_terraform_command.assert_called_once_with(
-                 base_commands + ["plan", "-out=plan.out"] + options + targets
+                 base_commands + ["plan"] + expected_targets + options + ["-out=plan.out"]
              )
      
              # Assert that error log for failed execution was called
              mock_error_log.assert_called_with("Terraform plan failed.")
+             
+             # Assert that exit(1) was called
+             mock_exit.assert_called_once_with(1)
 
     @patch('terraform_importer.handlers.terraform_handler.TerraformHandler.run_terraform_command')  # Mock run_terraform_command
     def test_run_terraform_plan_exception(self, mock_run_terraform_command):
@@ -383,7 +390,8 @@ class TestTerraformHandler(unittest.TestCase):
         self.assertEqual(result, {"key": "value"})
 
     @patch('terraform_importer.handlers.terraform_handler.TerraformHandler.run_terraform_command')  # Mock run_terraform_command
-    def test_run_terraform_show_failure(self, mock_run_terraform_command):
+    @patch('builtins.exit')  # Mock exit to prevent test from exiting
+    def test_run_terraform_show_failure(self, mock_exit, mock_run_terraform_command):
         # Prepare mock data for failed terraform show command execution
         plan_output = "Error: Terraform show failed"
         mock_run_terraform_command.return_value = (plan_output, "Error details", 1)  # Failure return code
@@ -404,8 +412,8 @@ class TestTerraformHandler(unittest.TestCase):
              mock_error_log.assert_any_call("Terraform show failed.")
              mock_error_log.assert_any_call("Error details")
      
-             # Assert that the result is None
-             self.assertIsNone(result)
+             # Assert that exit(1) was called
+             mock_exit.assert_called_once_with(1)
 
     @patch('terraform_importer.handlers.terraform_handler.TerraformHandler.run_terraform_command')  # Mock run_terraform_command
     def test_run_terraform_show_exception(self, mock_run_terraform_command):

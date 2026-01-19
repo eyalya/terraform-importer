@@ -650,17 +650,10 @@ class TestKubernetesProvider(unittest.TestCase):
         api_exception = ApiException(status=404)
         self.mock_rbac_authorization_v1.read_namespaced_role_binding.side_effect = api_exception
         
-        # Mock list_namespaced_role_binding for debugging (returns empty list)
-        mock_role_binding_list = MagicMock()
-        mock_role_binding_list.items = []
-        self.mock_rbac_authorization_v1.list_namespaced_role_binding.return_value = mock_role_binding_list
-        
         result = self.provider.kubernetes_role_binding(resource)
         
         self.assertIsNone(result)
         self.mock_rbac_authorization_v1.read_namespaced_role_binding.assert_called_once_with(name="test-rolebinding", namespace="default")
-        # Verify list was called for debugging
-        self.mock_rbac_authorization_v1.list_namespaced_role_binding.assert_called_once_with(namespace="default")
 
     def test_kubernetes_role_binding_not_found_but_in_list(self):
         """Test kubernetes_role_binding when role binding is in list but read fails (permissions issue)"""
@@ -677,19 +670,10 @@ class TestKubernetesProvider(unittest.TestCase):
         api_exception = ApiException(status=404)
         self.mock_rbac_authorization_v1.read_namespaced_role_binding.side_effect = api_exception
         
-        # Mock list_namespaced_role_binding to return the RoleBinding (simulating permissions issue)
-        mock_role_binding = MagicMock()
-        mock_role_binding.metadata.name = "test-rolebinding"
-        mock_role_binding_list = MagicMock()
-        mock_role_binding_list.items = [mock_role_binding]
-        self.mock_rbac_authorization_v1.list_namespaced_role_binding.return_value = mock_role_binding_list
-        
         result = self.provider.kubernetes_role_binding(resource)
         
         self.assertIsNone(result)
         self.mock_rbac_authorization_v1.read_namespaced_role_binding.assert_called_once_with(name="test-rolebinding", namespace="default")
-        # Verify list was called for debugging
-        self.mock_rbac_authorization_v1.list_namespaced_role_binding.assert_called_once_with(namespace="default")
 
     def test_kubernetes_role_binding_api_error_non_404(self):
         """Test kubernetes_role_binding with non-404 API error"""

@@ -99,9 +99,69 @@ For advanced usage and configuration options, see our [detailed documentation](d
 
 ## Project Structure
 - `terraform_importer/`: Main package containing the core logic
-- `tests/`: Unit tests and integration tests
+  - `providers/aws/tests/`: AWS service-specific unit tests
+  - `providers/kubernetes/tests/`: Kubernetes provider tests
+- `tests/`: Main unit tests for core functionality
 - `docs/`: Detailed documentation
 - `examples/`: Example configurations and use cases
+
+## Testing
+
+### Prerequisites
+Before running tests, install the development dependencies:
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Or install with optional dev dependencies using pip:
+```bash
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+#### Run All Tests
+Run all tests (main tests and provider-specific tests):
+```bash
+# Using pytest (recommended)
+python -m pytest tests/ terraform_importer/providers/*/tests/ -v
+
+# Using unittest
+python -m unittest discover -s tests -v
+```
+
+#### Run Main Tests Only
+```bash
+python -m pytest tests/ -v
+```
+
+#### Run AWS Service Tests Only
+```bash
+python -m pytest terraform_importer/providers/aws/tests/ -v
+```
+
+#### Run Specific Test File
+```bash
+python -m pytest tests/test_terraform_handler.py -v
+python -m pytest terraform_importer/providers/aws/tests/test_s3.py -v
+```
+
+#### Run with Coverage
+```bash
+python -m pytest tests/ terraform_importer/providers/*/tests/ --cov=terraform_importer --cov-report=html -v
+```
+
+### Test Structure
+- **Main tests (`tests/`)**: Tests for core functionality like CLI, handlers, and generators
+- **AWS service tests (`terraform_importer/providers/aws/tests/`)**: Tests for each AWS service handler (S3, EC2, IAM, etc.)
+- **Other provider tests**: Located in their respective provider directories
+
+### Writing New Tests
+When adding new functionality, follow the test patterns in `.cursorrules`:
+- Create test files named `test_<module>.py`
+- Include success, not-found, and error handling test cases
+- Use mocking for external API calls (boto3, requests, etc.)
 
 ## Contributing
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to:

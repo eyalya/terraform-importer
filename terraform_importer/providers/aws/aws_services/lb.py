@@ -33,7 +33,7 @@ class LoadBalancerService(BaseAWSService):
         """
         name = resource['change']['after'].get('name')
         if not name:
-            self.logger.error("Target group name is missing.")
+            self.logger.warning("Target group name is missing.")
             return None
         try:
             paginator = self.client.get_paginator('describe_target_groups')
@@ -41,9 +41,9 @@ class LoadBalancerService(BaseAWSService):
                 for target_group in page.get('TargetGroups', []):
                     if target_group.get('TargetGroupName') == name:
                         return target_group.get('TargetGroupArn')
-            self.logger.error(f"Target group '{name}' not found.")
+            self.logger.warning(f"Target group '{name}' not found.")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"Error retrieving target group '{name}': {e}")
+            self.logger.warning(f"Error retrieving target group '{name}': {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error while retrieving target group '{name}': {e}")
         return None
@@ -58,7 +58,7 @@ class LoadBalancerService(BaseAWSService):
             protocol = resource['change']['after'].get('protocol')
     
             if not lb_arn or port is None or not protocol:
-                self.logger.error("Missing required values: load_balancer_arn, port, or protocol.")
+                self.logger.warning("Missing required values: load_balancer_arn, port, or protocol.")
                 return None
     
             response = self.client.describe_listeners(LoadBalancerArn=lb_arn)
@@ -66,12 +66,12 @@ class LoadBalancerService(BaseAWSService):
                 if listener.get('Port') == port and listener.get('Protocol') == protocol:
                     return listener.get('ListenerArn')
     
-            self.logger.error(f"No matching listener found on Load Balancer '{lb_arn}' for port {port} and protocol '{protocol}'.")
+            self.logger.warning(f"No matching listener found on Load Balancer '{lb_arn}' for port {port} and protocol '{protocol}'.")
     
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"ClientError while retrieving listener for Load Balancer '{lb_arn}': {e}")
+            self.logger.warning(f"ClientError while retrieving listener for Load Balancer '{lb_arn}': {e}")
         except KeyError as e:
-            self.logger.error(f"Missing key in resource data: {e}")
+            self.logger.warning(f"Missing key in resource data: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error while retrieving listener: {e}")
     

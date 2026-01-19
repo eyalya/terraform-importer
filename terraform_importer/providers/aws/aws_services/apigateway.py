@@ -64,10 +64,10 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_rest_api(restApiId=api_id)
                     return api_id
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway REST API with ID '{api_id}' not found.")
+                    self.logger.warning(f"API Gateway REST API with ID '{api_id}' not found.")
                     return None
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway REST API: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway REST API: {e}")
                     return None
             
             if api_name:
@@ -77,18 +77,18 @@ class APIGatewayService(BaseAWSService):
                     for api in apis.get('items', []):
                         if api.get('name') == api_name:
                             return api['id']
-                    self.logger.error(f"API Gateway REST API '{api_name}' not found.")
+                    self.logger.warning(f"API Gateway REST API '{api_name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway REST APIs: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway REST APIs: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway REST API: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway REST API: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -111,7 +111,7 @@ class APIGatewayService(BaseAWSService):
             path_part = resource['change']['after'].get('path_part')
             
             if not rest_api_id:
-                self.logger.error("Missing 'rest_api_id' in resource data")
+                self.logger.warning("Missing 'rest_api_id' in resource data")
                 return None
             
             if resource_id:
@@ -120,7 +120,7 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_resource(restApiId=rest_api_id, resourceId=resource_id)
                     return f"{rest_api_id}/{resource_id}"
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway Resource with ID '{resource_id}' not found.")
+                    self.logger.warning(f"API Gateway Resource with ID '{resource_id}' not found.")
                     return None
             
             # Search by path or path_part
@@ -132,18 +132,18 @@ class APIGatewayService(BaseAWSService):
                             return f"{rest_api_id}/{res['id']}"
                         if path_part and res.get('pathPart') == path_part:
                             return f"{rest_api_id}/{res['id']}"
-                    self.logger.error(f"API Gateway Resource with path '{path or path_part}' not found.")
+                    self.logger.warning(f"API Gateway Resource with path '{path or path_part}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway Resources: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway Resources: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id', 'path', or 'path_part' in resource data")
+                self.logger.warning("Missing 'id', 'path', or 'path_part' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Resource: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Resource: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -165,7 +165,7 @@ class APIGatewayService(BaseAWSService):
             http_method = resource['change']['after'].get('http_method')
             
             if not all([rest_api_id, resource_id, http_method]):
-                self.logger.error("Missing required fields: 'rest_api_id', 'resource_id', or 'http_method'")
+                self.logger.warning("Missing required fields: 'rest_api_id', 'resource_id', or 'http_method'")
                 return None
             
             try:
@@ -176,13 +176,13 @@ class APIGatewayService(BaseAWSService):
                 )
                 return f"{rest_api_id}/{resource_id}/{http_method}"
             except self.client.exceptions.NotFoundException:
-                self.logger.error(f"API Gateway Method '{http_method}' not found for resource '{resource_id}'.")
+                self.logger.warning(f"API Gateway Method '{http_method}' not found for resource '{resource_id}'.")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Method: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Method: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -204,7 +204,7 @@ class APIGatewayService(BaseAWSService):
             http_method = resource['change']['after'].get('http_method')
             
             if not all([rest_api_id, resource_id, http_method]):
-                self.logger.error("Missing required fields: 'rest_api_id', 'resource_id', or 'http_method'")
+                self.logger.warning("Missing required fields: 'rest_api_id', 'resource_id', or 'http_method'")
                 return None
             
             try:
@@ -215,13 +215,13 @@ class APIGatewayService(BaseAWSService):
                 )
                 return f"{rest_api_id}/{resource_id}/{http_method}"
             except self.client.exceptions.NotFoundException:
-                self.logger.error(f"API Gateway Integration not found for method '{http_method}' on resource '{resource_id}'.")
+                self.logger.warning(f"API Gateway Integration not found for method '{http_method}' on resource '{resource_id}'.")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Integration: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Integration: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -242,7 +242,7 @@ class APIGatewayService(BaseAWSService):
             deployment_id = resource['change']['after'].get('id')
             
             if not rest_api_id:
-                self.logger.error("Missing 'rest_api_id' in resource data")
+                self.logger.warning("Missing 'rest_api_id' in resource data")
                 return None
             
             if deployment_id:
@@ -251,7 +251,7 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_deployment(restApiId=rest_api_id, deploymentId=deployment_id)
                     return f"{rest_api_id}/{deployment_id}"
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway Deployment with ID '{deployment_id}' not found.")
+                    self.logger.warning(f"API Gateway Deployment with ID '{deployment_id}' not found.")
                     return None
             else:
                 # Get the latest deployment
@@ -260,15 +260,15 @@ class APIGatewayService(BaseAWSService):
                     if deployments.get('items'):
                         latest_deployment = deployments['items'][0]
                         return f"{rest_api_id}/{latest_deployment['id']}"
-                    self.logger.error(f"No deployments found for REST API '{rest_api_id}'.")
+                    self.logger.warning(f"No deployments found for REST API '{rest_api_id}'.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway Deployments: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway Deployments: {e}")
                     return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Deployment: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Deployment: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -289,20 +289,20 @@ class APIGatewayService(BaseAWSService):
             stage_name = resource['change']['after'].get('stage_name')
             
             if not all([rest_api_id, stage_name]):
-                self.logger.error("Missing required fields: 'rest_api_id' or 'stage_name'")
+                self.logger.warning("Missing required fields: 'rest_api_id' or 'stage_name'")
                 return None
             
             try:
                 self.client.get_stage(restApiId=rest_api_id, stageName=stage_name)
                 return f"{rest_api_id}/{stage_name}"
             except self.client.exceptions.NotFoundException:
-                self.logger.error(f"API Gateway Stage '{stage_name}' not found for REST API '{rest_api_id}'.")
+                self.logger.warning(f"API Gateway Stage '{stage_name}' not found for REST API '{rest_api_id}'.")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Stage: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Stage: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -328,7 +328,7 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_api_key(apiKey=api_key_id)
                     return api_key_id
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway API Key with ID '{api_key_id}' not found.")
+                    self.logger.warning(f"API Gateway API Key with ID '{api_key_id}' not found.")
                     return None
             
             if name:
@@ -338,18 +338,18 @@ class APIGatewayService(BaseAWSService):
                     for key in api_keys.get('items', []):
                         if key.get('name') == name:
                             return key['id']
-                    self.logger.error(f"API Gateway API Key '{name}' not found.")
+                    self.logger.warning(f"API Gateway API Key '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway API Keys: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway API Keys: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway API Key: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway API Key: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -375,7 +375,7 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_usage_plan(usagePlanId=usage_plan_id)
                     return usage_plan_id
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway Usage Plan with ID '{usage_plan_id}' not found.")
+                    self.logger.warning(f"API Gateway Usage Plan with ID '{usage_plan_id}' not found.")
                     return None
             
             if name:
@@ -385,18 +385,18 @@ class APIGatewayService(BaseAWSService):
                     for plan in usage_plans.get('items', []):
                         if plan.get('name') == name:
                             return plan['id']
-                    self.logger.error(f"API Gateway Usage Plan '{name}' not found.")
+                    self.logger.warning(f"API Gateway Usage Plan '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway Usage Plans: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway Usage Plans: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Usage Plan: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Usage Plan: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -418,7 +418,7 @@ class APIGatewayService(BaseAWSService):
             name = resource['change']['after'].get('name')
             
             if not rest_api_id:
-                self.logger.error("Missing 'rest_api_id' in resource data")
+                self.logger.warning("Missing 'rest_api_id' in resource data")
                 return None
             
             if authorizer_id:
@@ -427,7 +427,7 @@ class APIGatewayService(BaseAWSService):
                     self.client.get_authorizer(restApiId=rest_api_id, authorizerId=authorizer_id)
                     return f"{rest_api_id}/{authorizer_id}"
                 except self.client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway Authorizer with ID '{authorizer_id}' not found.")
+                    self.logger.warning(f"API Gateway Authorizer with ID '{authorizer_id}' not found.")
                     return None
             
             if name:
@@ -437,18 +437,18 @@ class APIGatewayService(BaseAWSService):
                     for auth in authorizers.get('items', []):
                         if auth.get('name') == name:
                             return f"{rest_api_id}/{auth['id']}"
-                    self.logger.error(f"API Gateway Authorizer '{name}' not found.")
+                    self.logger.warning(f"API Gateway Authorizer '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway Authorizers: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway Authorizers: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Authorizer: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Authorizer: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -471,7 +471,7 @@ class APIGatewayService(BaseAWSService):
             status_code = resource['change']['after'].get('status_code')
             
             if not all([rest_api_id, resource_id, http_method, status_code]):
-                self.logger.error("Missing required fields: 'rest_api_id', 'resource_id', 'http_method', or 'status_code'")
+                self.logger.warning("Missing required fields: 'rest_api_id', 'resource_id', 'http_method', or 'status_code'")
                 return None
             
             try:
@@ -483,13 +483,13 @@ class APIGatewayService(BaseAWSService):
                 )
                 return f"{rest_api_id}/{resource_id}/{http_method}/{status_code}"
             except self.client.exceptions.NotFoundException:
-                self.logger.error(f"API Gateway Method Response with status code '{status_code}' not found for method '{http_method}' on resource '{resource_id}'.")
+                self.logger.warning(f"API Gateway Method Response with status code '{status_code}' not found for method '{http_method}' on resource '{resource_id}'.")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Method Response: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Method Response: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -512,7 +512,7 @@ class APIGatewayService(BaseAWSService):
             status_code = resource['change']['after'].get('status_code')
             
             if not all([rest_api_id, resource_id, http_method, status_code]):
-                self.logger.error("Missing required fields: 'rest_api_id', 'resource_id', 'http_method', or 'status_code'")
+                self.logger.warning("Missing required fields: 'rest_api_id', 'resource_id', 'http_method', or 'status_code'")
                 return None
             
             try:
@@ -524,13 +524,13 @@ class APIGatewayService(BaseAWSService):
                 )
                 return f"{rest_api_id}/{resource_id}/{http_method}/{status_code}"
             except self.client.exceptions.NotFoundException:
-                self.logger.error(f"API Gateway Integration Response with status code '{status_code}' not found for method '{http_method}' on resource '{resource_id}'.")
+                self.logger.warning(f"API Gateway Integration Response with status code '{status_code}' not found for method '{http_method}' on resource '{resource_id}'.")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway Integration Response: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway Integration Response: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -559,7 +559,7 @@ class APIGatewayService(BaseAWSService):
                     v2_client.get_api(ApiId=api_id)
                     return api_id
                 except v2_client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway V2 API with ID '{api_id}' not found.")
+                    self.logger.warning(f"API Gateway V2 API with ID '{api_id}' not found.")
                     return None
             
             if name:
@@ -569,18 +569,18 @@ class APIGatewayService(BaseAWSService):
                     for api in apis.get('Items', []):
                         if api.get('Name') == name:
                             return api['ApiId']
-                    self.logger.error(f"API Gateway V2 API '{name}' not found.")
+                    self.logger.warning(f"API Gateway V2 API '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway V2 APIs: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway V2 APIs: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 API: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 API: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -602,7 +602,7 @@ class APIGatewayService(BaseAWSService):
             name = resource['change']['after'].get('name')
             
             if not api_id:
-                self.logger.error("Missing 'api_id' in resource data")
+                self.logger.warning("Missing 'api_id' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -614,7 +614,7 @@ class APIGatewayService(BaseAWSService):
                     v2_client.get_authorizer(ApiId=api_id, AuthorizerId=authorizer_id)
                     return f"{api_id}/{authorizer_id}"
                 except v2_client.exceptions.NotFoundException:
-                    self.logger.error(f"API Gateway V2 Authorizer with ID '{authorizer_id}' not found.")
+                    self.logger.warning(f"API Gateway V2 Authorizer with ID '{authorizer_id}' not found.")
                     return None
             
             if name:
@@ -624,18 +624,18 @@ class APIGatewayService(BaseAWSService):
                     for auth in authorizers.get('Items', []):
                         if auth.get('Name') == name:
                             return f"{api_id}/{auth['AuthorizerId']}"
-                    self.logger.error(f"API Gateway V2 Authorizer '{name}' not found.")
+                    self.logger.warning(f"API Gateway V2 Authorizer '{name}' not found.")
                 except botocore.exceptions.ClientError as e:
-                    self.logger.error(f"Error retrieving API Gateway V2 Authorizers: {e}")
+                    self.logger.warning(f"Error retrieving API Gateway V2 Authorizers: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'name' in resource data")
+                self.logger.warning("Missing 'id' or 'name' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Authorizer: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Authorizer: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -657,7 +657,7 @@ class APIGatewayService(BaseAWSService):
             api_id = resource['change']['after'].get('api_id')
             
             if not domain_name:
-                self.logger.error("Missing 'domain_name' in resource data")
+                self.logger.warning("Missing 'domain_name' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -684,13 +684,13 @@ class APIGatewayService(BaseAWSService):
                     self.logger.warning(f"Error retrieving API Gateway V2 API Mappings: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'api_id' in resource data")
+                self.logger.warning("Missing 'id' or 'api_id' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 API Mapping: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 API Mapping: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -711,7 +711,7 @@ class APIGatewayService(BaseAWSService):
             deployment_id = resource['change']['after'].get('id')
             
             if not api_id:
-                self.logger.error("Missing 'api_id' in resource data")
+                self.logger.warning("Missing 'api_id' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -738,9 +738,9 @@ class APIGatewayService(BaseAWSService):
                     return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Deployment: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Deployment: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -760,7 +760,7 @@ class APIGatewayService(BaseAWSService):
             domain_name = resource['change']['after'].get('domain_name')
             
             if not domain_name:
-                self.logger.error("Missing 'domain_name' in resource data")
+                self.logger.warning("Missing 'domain_name' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -774,9 +774,9 @@ class APIGatewayService(BaseAWSService):
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Domain Name: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Domain Name: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -824,7 +824,7 @@ class APIGatewayService(BaseAWSService):
             integration_uri = resource['change']['after'].get('integration_uri')
             
             if not api_id:
-                self.logger.error("Missing 'api_id' in resource data")
+                self.logger.warning("Missing 'api_id' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -871,9 +871,9 @@ class APIGatewayService(BaseAWSService):
                     return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Integration: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Integration: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -896,7 +896,7 @@ class APIGatewayService(BaseAWSService):
             integration_response_key = resource['change']['after'].get('integration_response_key')
             
             if not all([api_id, integration_id]):
-                self.logger.error("Missing required fields: 'api_id' or 'integration_id'")
+                self.logger.warning("Missing required fields: 'api_id' or 'integration_id'")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -927,13 +927,13 @@ class APIGatewayService(BaseAWSService):
                     self.logger.warning(f"Error retrieving API Gateway V2 Integration Responses: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'integration_response_key' in resource data")
+                self.logger.warning("Missing 'id' or 'integration_response_key' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Integration Response: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Integration Response: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         
@@ -955,7 +955,7 @@ class APIGatewayService(BaseAWSService):
             route_key = resource['change']['after'].get('route_key')
             
             if not api_id:
-                self.logger.error("Missing 'api_id' in resource data")
+                self.logger.warning("Missing 'api_id' in resource data")
                 return None
             
             # Get the apigatewayv2 client for HTTP/WebSocket APIs
@@ -982,13 +982,13 @@ class APIGatewayService(BaseAWSService):
                     self.logger.warning(f"Error retrieving API Gateway V2 Routes: {e}")
                     return None
             else:
-                self.logger.error("Missing 'id' or 'route_key' in resource data")
+                self.logger.warning("Missing 'id' or 'route_key' in resource data")
                 return None
                 
         except KeyError as e:
-            self.logger.error(f"Missing expected key in resource: {e}")
+            self.logger.warning(f"Missing expected key in resource: {e}")
         except botocore.exceptions.ClientError as e:
-            self.logger.error(f"AWS ClientError while validating API Gateway V2 Route: {e}")
+            self.logger.warning(f"AWS ClientError while validating API Gateway V2 Route: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error occurred: {e}")
         

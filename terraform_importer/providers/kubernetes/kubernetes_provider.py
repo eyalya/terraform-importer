@@ -252,7 +252,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Namespace '{namespace_name}' not found")
                 else:
-                    self.logger.error(f"Error retrieving namespace '{namespace_name}': {e}")
+                    self.logger.warning(f"Error retrieving namespace '{namespace_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -287,7 +287,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Pod '{pod_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving pod '{pod_name}': {e}")
+                    self.logger.warning(f"Error retrieving pod '{pod_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -322,7 +322,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Deployment '{deployment_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving deployment '{deployment_name}': {e}")
+                    self.logger.warning(f"Error retrieving deployment '{deployment_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -357,7 +357,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Service '{service_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving service '{service_name}': {e}")
+                    self.logger.warning(f"Error retrieving service '{service_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -392,7 +392,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"ConfigMap '{config_map_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving ConfigMap '{config_map_name}': {e}")
+                    self.logger.warning(f"Error retrieving ConfigMap '{config_map_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -427,7 +427,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Secret '{secret_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving Secret '{secret_name}': {e}")
+                    self.logger.warning(f"Error retrieving Secret '{secret_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -462,7 +462,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"PersistentVolumeClaim '{pvc_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving PersistentVolumeClaim '{pvc_name}': {e}")
+                    self.logger.warning(f"Error retrieving PersistentVolumeClaim '{pvc_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -497,7 +497,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"StatefulSet '{stateful_set_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving StatefulSet '{stateful_set_name}': {e}")
+                    self.logger.warning(f"Error retrieving StatefulSet '{stateful_set_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -532,7 +532,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"DaemonSet '{daemon_set_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving DaemonSet '{daemon_set_name}': {e}")
+                    self.logger.warning(f"Error retrieving DaemonSet '{daemon_set_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -567,7 +567,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Ingress '{ingress_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving Ingress '{ingress_name}': {e}")
+                    self.logger.warning(f"Error retrieving Ingress '{ingress_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -602,7 +602,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"ServiceAccount '{service_account_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving ServiceAccount '{service_account_name}': {e}")
+                    self.logger.warning(f"Error retrieving ServiceAccount '{service_account_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -637,7 +637,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"Role '{role_name}' not found in namespace '{namespace}'")
                 else:
-                    self.logger.error(f"Error retrieving Role '{role_name}': {e}")
+                    self.logger.warning(f"Error retrieving Role '{role_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -685,7 +685,7 @@ class KubernetesProvider(BaseProvider):
                     except Exception as list_error:
                         self.logger.debug(f"Could not list RoleBindings for debugging: {list_error}")
                 else:
-                    self.logger.error(f"Error retrieving RoleBinding '{role_binding_name}': {e}")
+                    self.logger.warning(f"Error retrieving RoleBinding '{role_binding_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -722,7 +722,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"ClusterRole '{cluster_role_name}' not found")
                 else:
-                    self.logger.error(f"Error retrieving ClusterRole '{cluster_role_name}': {e}")
+                    self.logger.warning(f"Error retrieving ClusterRole '{cluster_role_name}': {e}")
                 return None
                 
         except KeyError as e:
@@ -757,7 +757,7 @@ class KubernetesProvider(BaseProvider):
                 if e.status == 404:
                     self.logger.warning(f"ClusterRoleBinding '{cluster_role_binding_name}' not found")
                 else:
-                    self.logger.error(f"Error retrieving ClusterRoleBinding '{cluster_role_binding_name}': {e}")
+                    self.logger.warning(f"Error retrieving ClusterRoleBinding '{cluster_role_binding_name}': {e}")
                 return None
                 
         except KeyError as e:

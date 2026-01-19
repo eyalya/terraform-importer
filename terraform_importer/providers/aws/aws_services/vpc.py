@@ -43,7 +43,7 @@ class VPCService(BaseAWSService):
             name_tag = values.get('tags', {}).get('Name')
     
             if not name_tag:
-                self.logger.error("Missing 'Name' tag in route table resource.")
+                self.logger.warning("Missing 'Name' tag in route table resource.")
                 return None
     
             response = self.client.describe_route_tables(
@@ -55,10 +55,10 @@ class VPCService(BaseAWSService):
             for route_table in response.get('RouteTables', []):
                 return route_table['RouteTableId']
     
-            self.logger.error(f"No route table found with Name tag: {name_tag}")
+            self.logger.warning(f"No route table found with Name tag: {name_tag}")
     
         except Exception as e:
-            self.logger.error(f"Error retrieving route table: {e}")
+            self.logger.warning(f"Error retrieving route table: {e}")
     
         return None
     
@@ -71,7 +71,7 @@ class VPCService(BaseAWSService):
         subnet_id = values.get('subnet_id')
     
         if not route_table_id or not subnet_id:
-            self.logger.error("Route table ID or subnet ID is missing.")
+            self.logger.warning("Route table ID or subnet ID is missing.")
             return None
     
         try:
@@ -80,8 +80,8 @@ class VPCService(BaseAWSService):
                 for assoc in route_table.get('Associations', []):
                     if assoc.get('SubnetId') == subnet_id:
                         return f"{subnet_id}/{route_table_id}"
-            self.logger.error(f"No association found for subnet '{subnet_id}' with route table '{route_table_id}'.")
+            self.logger.warning(f"No association found for subnet '{subnet_id}' with route table '{route_table_id}'.")
         except Exception as e:
-            self.logger.error(f"Error checking route table association: {e}")
+            self.logger.warning(f"Error checking route table association: {e}")
         return None
     
